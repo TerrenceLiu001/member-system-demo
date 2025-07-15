@@ -75,11 +75,14 @@
 
 
 <p align="left">
-  <img src="docs/images/register.png" height="250" width="225">
-  <img src="docs/images/set_password.png" height="250" width="225">
-  <img src="docs/images/set_account.png" height="250" width="225">
-  <img src="docs/images/home_page.png" height="250" width="225">
+  <img src="docs/images/register.png" height="400" width="300">
+  <img src="docs/images/set_password.png" height="400" width="300">
+
+<p align="left">
+  <img src="docs/images/set_account.png" height="400" width="300">
+  <img src="docs/images/home_page.png" height="400" width="300">
 </p>
+
 
 
 
