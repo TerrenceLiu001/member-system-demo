@@ -1,0 +1,189 @@
+.form_field {
+    gap: 24px;
+
+    .header_section {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+
+        & img {
+            cursor: pointer;
+
+            &:hover {
+                transform: scale(1.25);
+            }
+
+            &:active {
+            transform: scale(0.95); 
+            }
+        }
+
+        & p {
+            font-size: 26px;
+            line-height: 36.4px;
+        }
+    }
+}
+@media (max-width: 767px) {
+    .form_field .header_section p {
+        font-size: 24px;
+        line-height: 33.6px;
+    }
+}
+
+.two_column_field {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+
+    .data_group {
+        flex: 1 0 0;
+    }
+}
+.data_group .input_part {
+    flex-direction: column;
+    justify-content: flex-start;
+
+    .input_include_verify {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .update_status_hint {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        width: 100%;
+
+        & p {
+            font-family: Noto Sans TC;
+            font-weight: 400;
+            font-size: 12px;
+            line-height: 16.8px;
+        }
+
+        &.success {
+            color: #59B058;
+        }
+
+        &.warn {
+            color: #838383;
+        }
+
+        &.fail {
+            color: #DA0606
+        }
+
+        .hidden {
+            display: none;
+        }
+    }
+    
+    .readonly-bg {
+        background-color:  #F0F5F8;;
+        cursor: not-allowed;
+        color: #003E6A;
+    }
+}
+
+.media_btn.verify_type {
+    width: 72px;
+    padding: 10px 16px;
+
+    & p {
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 22.4px;
+    }
+}
+@media (max-width: 767px) {
+    .media_btn.verify_type {
+        width: 75px;
+    }
+}
+
+.phone_input {
+    display: flex;
+    gap: 8px;
+}
+
+.dash_line {
+    border-bottom: 1px solid #e6e6e6;
+    margin: 0;
+}
+
+@media (max-width: 767px) {
+    .media_btn.margin_left_auto.margin_right_auto.width_280 {
+        margin-left: unset;
+        margin-right: unset;
+        width: 100%;
+    }
+}
+
+.customer_select_field.phone_code {
+    width: 81px;
+}
+
+.send_verify_field {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 460px;
+
+    .send_verify_message {
+        position: relative;
+        opacity: 0;
+        border-radius: 4px;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0px 2px 8px 0px #00000040;
+        background-color: #E4FBDC;
+
+        & p {
+            font-family: Noto Sans TC;
+            font-weight: 500;
+            font-size: 16px;
+            line-height: 21.79px;
+            color: #228300;
+        }
+
+        .send_verify_close {
+            position: absolute;
+            top: 9px;
+            right: 10px;
+        }
+
+        &.invalid_link {
+            background-color:#FFE6E6; 
+
+            & p {
+                color: #CC0000;
+            }
+        }
+    }
+    .hidden {
+        display: none;
+    }
+}
+
+
+.send_verify_message.to_fadeIn {
+    animation: fadeIn 0.5s linear 0.5s forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        top: -24px;
+    }
+    to {
+        opacity: 1;
+        top: 0px;
+    }
+}

@@ -1,0 +1,324 @@
+@import url(https://fonts.googleapis.com/earlyaccess/notosanstc.css);
+
+/* 基本設置 */
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
+p, h1, label {
+    margin: 0;
+}
+
+.media_container {
+    position: relative;
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.main_page {
+    margin-top: 20px;
+    width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+@media (max-width: 767px) {
+    .main_page {
+        width: 390px;
+
+        padding: 0 16px;
+    }
+}
+
+.icon_field {
+
+    margin: 0 auto;
+    margin-top: 12px;
+
+    .desktop_logo {
+        display: block;
+    }
+    .mobile_logo {
+        display: none;
+    }
+}
+@media (max-width: 767px) {
+    .icon_field .desktop_logo {
+        display: none;
+    }
+    .icon_field .mobile_logo {
+        display: block;
+    }
+}
+
+.form_field {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    
+    .hidden {
+        display: none;
+    }
+}
+
+.dash_line {
+    width: 100%;
+    border: 0;
+    border-bottom: 1px dashed #E6E6E6;
+    margin: 0;
+}
+
+.header_section p {
+    font-family: Noto Sans TC;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 50.4px;
+    color: #003E6A;   
+}
+@media (max-width: 767px) {
+    .header_section p {
+        font-size: 24px;
+        line-height: 33.6px;
+    }
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.data_group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .label_part {
+        display: flex;
+        gap: 8px;
+
+        .radio_part {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        & label, & p {
+            font-family: Noto Sans TC;
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 25.2px;
+            color: #313131;
+        }
+
+        & input[type=radio] {
+            width: 16px;
+            height: 16px;
+        }
+    }
+
+    .input_part {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .switch_input_btn {
+            position: absolute;
+            right: 12px;
+            top: 9px;
+
+            background-color: #ffffff;
+            border: 0;
+            outline: 0;
+
+            .hide_password, .show_password {
+                display: none;
+            }
+            .hide_password.active, .show_password.active {
+                display: block;
+            }
+        }
+
+        .radio_switch_field {
+            width: 100%;
+
+            .mail_input, .phone_input {
+                display: none;
+            }
+            .mail_input.active, .phone_input.active {
+                display: flex;
+            }
+
+            .phone_input {
+                gap: 8px;
+            }
+        }
+        .radio_switch_field.concurrent {
+            width: 280px;
+        }
+    }
+}
+
+/* Atomic CSS */
+
+.width_100 {
+    width: 100%;
+}
+
+.width_280 {
+    width: 280px;
+}
+
+.margin_top_16 {
+    margin-top: 16px;
+}
+
+.margin_right_auto {
+    margin-right: auto;
+}
+.margin_left_auto {
+    margin-left: auto;
+}
+
+.flex_direction_column {
+    flex-direction: column;
+}
+
+/* 按鈕設定 */
+
+.media_btn {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 8px;
+    padding: 6.5px 24px;
+    background-color: #003E6A;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2); 
+
+    p {
+        color: #ffffff;
+        font-family: Noto Sans TC;
+        font-weight: 700;
+        font-size: 18px;
+        line-height: 25.2px;
+    }
+
+    &:hover {
+        background-color: #005691;
+        cursor: pointer;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    &:active {
+        background-color: #002e4d;
+        transform: translateY(1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    &.disable {
+        background-color: #D6D6D6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+        pointer-events: none;
+
+        & p {
+            color: #666666;
+            font-weight: 400;
+        }
+    }
+}
+
+button:focus {
+    outline: none;
+}
+
+button:focus-visible {
+    outline: 1px solid #2255ee; 
+    /* outline-offset: 2px; */
+}
+
+
+
+/* 輸入框設定 */
+
+.media_input {
+    border-radius: 8px;
+    border: 1px solid #3131314D;
+    padding: 8px 12px;
+}
+
+/* 自設下拉選單設定 */
+
+.customer_select_field {
+    position: relative;
+
+    .media_custom_select {
+        outline: 0;
+        width: inherit;
+        display: flex;
+        padding: 8px 12px;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 8px;
+        border: 1px solid #3131314D;
+        background: #FFF;
+
+        .preview_text {
+            color: var(--neutral-black-600, #838383);
+            font-family: Noto Sans TC;
+            font-size: 1rem;
+            font-style: normal;
+            font-weight: 400;
+            line-height: 140%;
+            letter-spacing: 0.02rem;
+        }
+    }
+    
+    .media_custom_option {
+        width: 232px;
+        padding: 0;
+        border-radius: 8px;
+        box-shadow: 0px 1px 4px 0px #00000040;
+
+        .customer_option_item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px 8px 12px;
+
+            .country_name {
+                font-family: Noto Sans TC;
+                font-size: 16px;
+                font-weight: 400;
+                line-height: 22.4px;
+                letter-spacing: 0.02em;
+                color: #313131;
+            }
+
+            .phone_identifier_code {
+                font-family: Noto Sans TC;
+                font-size: 14px;
+                font-weight: 400;
+                line-height: 19.6px;
+                letter-spacing: 0.02em;
+                color: #838383;
+            }
+        }
+        .customer_option_item:hover {
+            background-color: #F1F2F6;
+
+            .country_name {
+                color: #223B86;
+            }
+        }
+    }
+}
