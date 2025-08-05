@@ -71,7 +71,7 @@ class MemberEditService
     // 更新 Contact 資訊
     public static function updateContact(UserContactUpdate $model): void
     {
-        if ($model->isRequestCompleted()) throw new Exception( "請勿重複操作，變更流程已經結束" );
+        if ($model->isRequestDone()) throw new Exception( "請勿重複操作，變更流程已經結束" );
         
         $type = $model->contact_type;
         match ($type) 

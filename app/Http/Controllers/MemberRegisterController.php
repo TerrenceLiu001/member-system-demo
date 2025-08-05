@@ -18,6 +18,7 @@ class MemberRegisterController extends Controller
         {
             MemberRegisterService::isRequestValid($request->post("account"));
             MemberRegisterService::prepareVerification($request->post("account"));
+
             return response()->json([
                 'code' => 200, 
                 'message' => '驗證信已寄出，請前往信箱完成開通流程'

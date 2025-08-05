@@ -29,15 +29,13 @@
                  <hr class="dash_line">
             </div>
             <div class="btn_field">
-                <form method="POST" action="{{ route('cancel_confirm') }}">
+                <form method="POST" action="{{ route('button_confirm') }}">
                     @csrf 
                     <input type="hidden" name="token" value="{{ $token }}">
-                    <button type="submit" class="media_btn cancel "><p>取消變更</p></button>
-                </form>
-                <form method="POST" action="{{ route('update_confirm') }}">
-                    @csrf 
-                    <input type="hidden" name="token" value="{{ $token }}">
-                    <button type="submit" class="media_btn"><p>確認</p></button>
+                    <input type="hidden" name="email" value="{{ $email }}">  
+                    <input type="hidden" name="contact_type" value="{{ $contact_type}}" > 
+                    <button type="submit"  name="action" value="cancel"  class="media_btn cancel ">取消變更</button>
+                    <button type="submit"  name="action" value="completed" class="media_btn">確認</button>
                 </form>
             </div>
         </div>

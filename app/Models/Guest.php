@@ -2,14 +2,11 @@
 
 namespace App\Models;
 
-use App\Contracts\MemberTokenInterface;
-use DateTimeInterface;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
-class Guest extends Model implements MemberTokenInterface
+use App\Models\Base\AbstractTokenModel;
+
+class Guest extends AbstractTokenModel
 {
-    use HasFactory;
 
     protected $table = 'member_center_guests';
 
@@ -32,26 +29,9 @@ class Guest extends Model implements MemberTokenInterface
     ];
 
 
-
-    public function scopeCancelPending($query, $email)
+    public function getTokenName():string
     {
-        return $query->where('email', $email)
-                     ->where('status', 'pending')
-                     ->update(['status' => 'cancel']);
+        return 'register_token';
     }
-
-
-    public function getTokenExpiresAt(): ?DateTimeInterface
-    {
-        return $this->token_expires_at;   
-    }
-
-    public function updateTokenAndExpiry(string $token, ?int $time = 10): void
-    {
-        $this->register_token = $token;
-        $this->token_expires_at = now()->addMinutes($time);
-        $this->save();
-    }
-
 
 }

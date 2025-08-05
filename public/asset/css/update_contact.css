@@ -40,47 +40,38 @@
 }
 
 .btn_field {
-    display: flex;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: flex-start; // 可改成 space-between 或 center
+  margin-top: 8px;
+
+  form {
+    display: flex !important;
+    flex-direction: row !important;
     gap: 16px;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 8px;
+    flex: 1 0 0;
+    width: 100%;
 
-    form {
-        flex: 1 0 0;
-
-        button {
-            width: 100%; /* 讓 button 撐滿 form，與 flex 對齊 */
-        }
+    button {
+        flex: 1 1 0;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-family: Noto Sans TC;
+        font-weight: 600;
+        font-size: 18px;
+        line-height: 28px;
     }
 
     .media_btn {
-        padding: 12px 24px;
         border: 1px solid #005B9A;
-        border-radius: 12px;
-
-        & p {
-            color: #ffffff;
-            font-family: Noto Sans TC;
-            font-weight: 400;
-            font-size: 18px;
-            line-height: 28px;
-        }
+        color: #ffffff;
     }
 
     .cancel {
         background-color: #ffffff;
         border: 1px solid #999999;
-        border-radius: 12px;
-        padding: 12px 24px;
-
-        & p {
-            font-family: Noto Sans TC;
-            font-size: 18px;
-            font-weight: 400;
-            line-height: 28px;
-            color: #999999;
-        }
+        color: #999999;
 
         &:hover {
             background-color: #ffffff;
@@ -90,4 +81,6 @@
             background-color: #fffff0;
         }
     }
+  }
 }
+

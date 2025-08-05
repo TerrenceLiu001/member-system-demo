@@ -8,7 +8,7 @@ use App\Http\Controllers\UpdateContactController;
 use App\Http\Controllers\ForgotPasswordController;
 
 
-// 處理「登入」、「註冊」功能
+// 處理「註冊」功能
 Route::controller(MemberRegisterController::class)->group(function() 
 {
     Route::post('/register_run','registerRun')->name('register_run');  // 處理「註冊」流程
@@ -16,7 +16,17 @@ Route::controller(MemberRegisterController::class)->group(function()
     Route::post('/create_member','createMember')->name('create_member');  // 加入會員                                      
 });
 
-// 處理「帳號設定」
+// 處理「密碼」功能
+Route::controller(ForgotPasswordController::class)->group(function() 
+{
+    Route::get('/forgot_password','forgotPassword')->name('forgot_password');  // 載入「忘記密碼」頁面
+    Route::post('/forgot_password_run','forgotPasswordRun')->name('forgot_password_run');  // 執行「忘記密碼」流程
+    Route::get('/reset_password/{email}/{token}', 'resetPassword')->name('reset_password');  // 載入「重設密碼」頁面
+    Route::post('/reset_confirm','resetConfirm')->name('reset_confirm');  // 設定「新密碼」
+                                            
+});
+
+// 處理「登入」、「帳號設定」
 Route::middleware(['member_center_path'])->controller(MemberCenterController::class)->group(function() 
 {
     Route::get('/login','login')->name('login');  // 載入「登入註冊」頁面
@@ -32,21 +42,12 @@ Route::middleware(['member_center_path'])->controller(UpdateContactController::c
 {
     Route::post('/update_email','updateEmail')->name('update_email'); // 執行「更新『電子郵件』」的流程
     Route::get('/update_contact/{email}/{token}','updateContact')->name('update_contact');  // 載入「確認變更」頁面
-    Route::post('/update_confirm','updateConfirm')->name('update_confirm'); // 執行「確認」變更
-    Route::post('/cancel_confirm','cancelConfirm')->name('cancel_confirm'); // 執行「取消」變更
+    Route::post('/button_confirm','buttonConfirm')->name('button_confirm'); // 執行「變更/取消」通訊帳號流程
     Route::get('/complete_confirm','completeConfirm')->name('complete_confirm');  // 載入「完成變更」頁面
     Route::post('/check_contact_update_status','checkContactUpdateStatus')->name('check_contact_update_status'); // 確認「變更通訊」是否完成
 });
 
-// 處理「密碼」功能
-Route::middleware(['member_center_path'])->controller(ForgotPasswordController::class)->group(function() 
-{
-    Route::get('/forgot_password','forgotPassword')->name('forgot_password');  // 載入「忘記密碼」頁面
-    Route::post('/forgot_password_run','forgotPasswordRun')->name('forgot_password_run');  // 執行「忘記密碼」流程
-    Route::get('/reset_password/{email}/{token}', 'resetPassword')->name('reset_password');  // 載入「重設密碼」頁面
-    Route::post('/reset_confirm','resetConfirm')->name('reset_confirm');  // 設定「新密碼」
-                                            
-});
+
 
 // 測試環境用連結
 

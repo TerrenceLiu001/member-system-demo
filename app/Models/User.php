@@ -2,16 +2,10 @@
 
 namespace App\Models;
 
-use App\Contracts\MemberTokenInterface;
-use DateTimeInterface;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Notifications\Notifiable;
+use App\Models\Base\BaseTokenModel;
 
-
-class User extends Model implements MemberTokenInterface
+class User extends BaseTokenModel 
 {
-    use HasFactory, Notifiable;
 
     protected $table = 'member_center_users';
 
@@ -41,24 +35,15 @@ class User extends Model implements MemberTokenInterface
         'updated_at' => 'datetime',
     ];
 
+    public function getTokenName(): string
+    {
+        return 'bearer_token'; 
+    }
+
+
     public static function isRegistered(string $contact, string $type = 'email'): ?User
     {
         return ($type === 'email')?  static::where('email', $contact)->first() : static::where('mobile', $contact)->first();          
     }
     
-    // --- 實作 MemberTokenInterface ---
-
-    public function getTokenExpiresAt(): ?DateTimeInterface
-    {
-        return $this->token_expires_at;
-    }
-
-    public function updateTokenAndExpiry(string $token, ?int $time = 12): void
-    {
-        $this->bearer_token = $token;
-        $this->token_expires_at = now()->addHours($time);
-        $this->save();
-        
-    }
-
 }

@@ -2,14 +2,11 @@
 
 namespace App\Models;
 
-use App\Contracts\MemberTokenInterface;
-use DateTimeInterface;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Base\AbstractTokenModel;
+use Illuminate\Contracts\Database\Eloquent\Builder;
 
-class UserContactUpdate extends Model implements MemberTokenInterface
+class UserContactUpdate extends AbstractTokenModel
 {
-    use HasFactory;
 
     protected $table = 'member_center_user_contact_update';
 
@@ -21,7 +18,6 @@ class UserContactUpdate extends Model implements MemberTokenInterface
         'new_contact',
         'update_contact_token',
         'token_expires_at',
-        'verification_at',
         'status',
     ];
 
@@ -32,35 +28,27 @@ class UserContactUpdate extends Model implements MemberTokenInterface
 
     protected $casts = [
         'token_expires_at' => 'datetime',
-        'verification_at' => 'datetime',
         'created_at' => 'datetime', 
         'updated_at' => 'datetime', 
     ];
 
+
+    public function getTokenName():string
+    {
+        return 'update_contact_token';
+    }
+
+    // ────── 查詢範圍 Scope Methods ──────
+
+    public function scopeUserId($query, $id): Builder
+    {
+        return $query->where('user_id', $id);
+    }
+
     
-    public function markVerification()
-    {
-        $this->status = 'verified';
-        $this->verification_at = now();
-        $this->save();
+    public function scopeType($query, $type): Builder
+    {        
+        return $query->where('contact_type', $type);
     }
 
-    public function isRequestCompleted(): bool
-    {
-
-        return $this->status !== 'pending';
-    }
-
-
-    public function getTokenExpiresAt(): ?DateTimeInterface
-    {
-        return $this->token_expires_at;   
-    }
-
-    public function updateTokenAndExpiry(string $token, ?int $time = 10): void
-    {
-        $this->update_contact_token = $token;
-        $this->token_expires_at = now()->addMinutes($time);
-        $this->save();
-    }
 }

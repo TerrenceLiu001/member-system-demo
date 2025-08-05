@@ -440,7 +440,7 @@ export const Poller = {
 
                 const res = await response.json();
 
-                if (res.status === 'verified' && res.message === 'done') {
+                if (res.status === 'completed' && res.message === 'done') {
                     this._callbacks.onVerified(onVerifiedMessage);
                     this.stop();
 

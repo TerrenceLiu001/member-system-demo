@@ -58,7 +58,7 @@ class MemberLoginService
     public static function setLogin(User $user): User
     {
         $bearerToken = MemberAuthService::generateToken('login');
-        $user->updateTokenAndExpiry($bearerToken, 12);
+        $user->updateTokenAndExpiry($bearerToken, 1440);
 
         return $user;
     }

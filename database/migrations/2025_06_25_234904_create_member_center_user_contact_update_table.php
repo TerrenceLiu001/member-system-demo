@@ -22,8 +22,7 @@ return new class extends Migration
 
             $table->string('update_contact_token')->nullable()->unique()->comment('驗證令牌');
             $table->timestamp('token_expires_at')->nullable()->comment('令牌效期'); 
-            $table->timestamp('verification_at')->nullable()->comment('驗證時間');
-            $table->enum('status', ['pending', 'verified', 'expired', 'cancel'])->default('pending')->comment('輪詢狀態');
+            $table->enum('status', ['pending', 'completed', 'expired', 'cancel'])->default('pending')->comment('輪詢狀態');
 
             $table->timestamps();
 

@@ -18,19 +18,16 @@ use Exception;
  * MemberRegisterController::registerRun
  * ├─ isRequestValid()
  * └─ prepareVerification()
- *    └─createAndUpdateGuest()  ← private
+ *    └─ createAndUpdateGuest()  ← private
  *
  * 
  * MemberRegisterController::setPassword
  * └─ authorizeSetPasswordAccess()
- *    ├─isRequestValid()
- *    └─verifyRegisterToken()  ← private
- * 
+ *    └─ isRequestValid()
  * 
  * MemberRegisterController::createMember
  * ├─ validateSetRequest()
- * |   ├─ isRequestValid()
- * |   └─ verifyRegisterToken()  ← private
+ * |   └─  isRequestValid()
  * └─ createMember()
  *
  * @used-by \App\Http\Controllers\MemberRegisterController
@@ -52,9 +49,8 @@ class MemberRegisterService
         if (User::isRegistered($account)) throw new Exception('此信箱已被註冊，請直接登入');
     }
 
-
     // 建立訪客資料並寄送註冊信件
-    public static function prepareVerification(string $email): void
+    public static function prepareVerification(string $email)//: void
     {
         $guest = self::createAndUpdateGuest($email);
         $link = MemberEmailService::generateLink('set_password', [
@@ -68,7 +64,7 @@ class MemberRegisterService
     public static function authorizeSetPasswordAccess(string $email, string $token): void
     {
         self::isRequestValid($email);
-        $guest = self::verifyRegisterToken($token);
+        $guest = MemberAuthService::verifyToken($token, 'register', ['status' => 'pending']);
 
         if (!$guest) throw new Exception("連結無效，請重新流程");
         if ($guest->email !== $email) throw new Exception('Email 與請求權杖並不一致');
@@ -79,17 +75,12 @@ class MemberRegisterService
     public static function  validateSetRequest(?string $email, ?string $password, ?string $confirmed): void
     {
         self::isRequestValid($email);
-        $guest = Guest::where('email', $email)
-                      ->where('status', 'pending')->first();
 
-        if (!self::verifyRegisterToken($guest->register_token))
-        {
-            throw new Exception('請求無效或已過期，請重新流程');
-        }    
+        $guest = Guest::email($email)->status('pending')->first();
+        MemberAuthService::verifyToken($guest, 'register');
 
         ValidationService::checkPasswordInputs($password, $confirmed);
     }
-
 
     // 在 User 中建立新帳號，並設定 Bearer Token
     public static function createMember(string $email, string $password): User
@@ -97,8 +88,8 @@ class MemberRegisterService
 
         return DB::transaction(function() use ($email, $password) 
         {
-            $guest = Guest::where('email', $email)
-                          ->where('status', 'pending')->first();
+            $guest = Guest::email($email)->status('pending')->first();
+            $guest?->proceedTo('completed'); 
 
             $user = User::create([
                 'email'            => $email,
@@ -107,7 +98,7 @@ class MemberRegisterService
             ]);
 
             $bearerToken = MemberAuthService::generateToken('login');
-            $user->updateTokenAndExpiry($bearerToken, 12);
+            $user->updateTokenAndExpiry($bearerToken, 1440);
 
             return $user;
         });
@@ -116,13 +107,13 @@ class MemberRegisterService
 
     /** ----- 以下為私有方法 ----- */
 
-
     // 在 Guest 中「創建」並「更新」資料
      private static function createAndUpdateGuest(string $email): Guest
     {
         return DB::transaction(function () use ($email) {
 
-            Guest::cancelPending($email);
+            Guest::email($email)->status('pending')->first()?->proceedTo('cancel');
+
             $guest = Guest::create([
                 'email'  => $email,
                 'status' => 'pending'
@@ -133,21 +124,5 @@ class MemberRegisterService
 
             return $guest;
         });
-    }
-
-    // 驗證「Register Token」
-    private static function verifyRegisterToken(?string $token): ?Guest
-    {
-        $guest = Guest::where('register_token', $token)
-                      ->where('status', 'pending')->first();
-
-        if (!$guest) return null;
-        if (!MemberAuthService::isTokenValid($guest))
-        {
-            $guest->status = 'expired';
-            $guest->save();
-            throw new Exception("驗證連結已過期，請重新註冊");
-        }
-        return $guest;
     }
 }

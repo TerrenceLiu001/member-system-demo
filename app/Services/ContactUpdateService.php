@@ -23,36 +23,24 @@ use Exception;
  * └─ isRequestValid()
  * |  └─ validateContact() ← private
  * └─ prepareUpdateForEmail()
- *    ├─ createAndUpdateRequest() ← private
- *    ├─ generateLink() ← MemberEmailService
- *    └─ sendUpdateContactEmail() ← MemberEmailService
+ *    └─ createAndUpdateRequest() ← private
  *
  * 
  * UpdateContactController::updateContact
  * └─ authorizeUpdateContactAccess()
- *    ├─ verifyUpdateContactToken() ← private
- *    ├─ isMatched() ← ValidationService
- *    └─ isRegistered() ← User
  * 
  * 
- * UpdateContactController::updateConfirm
- * └─ finishConfirm()
- *    ├─ verifyUpdateContactToken() ← private
- *    ├─ updateContact() ← MemberEditService
- *    └─ markVerification() ← Model method
- * 
- * 
- * UpdateContactController::cancelConfirm
- * └─ cancelRequest()
- *    └─ verifyUpdateContactToken() ← private
- *
+ * UpdateContactController::buttonConfirm
+ * └─ handdleConfirmation()
+ *    ├─ checkStatus() ← private
+ *    └─┬─ cancelUpdate ← private
+ *      └─ completedUpdate ← private
+ *         └─ updateConract ← MemberEditService
  * 
  * PollingStatusService::checkUpdateStatus
  * ├─ searchPollingRecord()
  * └─ isUpdate()
- *    ├─ assertStatusConsistent() ← private
- *    └─ isMatched() ← ValidationService
- * 
+ *    
  * 
  * @used-by \App\Http\Controllers\UpdateContactController
  * @used-by \App\Services\Api\PollingStatusService
@@ -100,16 +88,15 @@ class ContactUpdateService
     // 是否有權限存取「變更確認」頁面
     public static function authorizeUpdateContactAccess(string $email, string $token): UserContactUpdate
     {
-        $user = User::isRegistered($email);
-        
+        $user = User::isRegistered($email);  
         if (!$user){
             throw new Exception("此變更要求並非來自會員，請先註冊");
         } 
         
-        $record = self::verifyUpdateContactToken($token);
+        $record = MemberAuthService::verifyToken($token, 'update_contact', ['status' => 'pending']);
         if (!$record){
-            throw new Exception("連結無效，請重新流程");
-        } 
+            throw new Exception('連結無效，請從新流程');
+        }
 
         if (!ValidationService::isMatched($record->email, $email)){
             throw new Exception( "資料並不一致(email)，請重新流程" );
@@ -121,36 +108,27 @@ class ContactUpdateService
         return $record;
     }
 
-    // 完成變更流程
-    public static function finishConfirm(?string $token): void
+    // 處理「變更/取消」的流程
+    public static function handdleConfirmation(array $input): string
     {
+        $email          = $input['email'] ?? null;
+        $token          = $input['token'] ?? null;
+        $contactType    = $input['contact_type'] ?? null;
+        $action         = $input['action'] ?? null;
 
-        $record = self::verifyUpdateContactToken($token);
-        if (!$record) throw new Exception("查詢不到「變更」請求，請重新開始");
-        
-        MemberEditService::updateContact($record);
-        $record->markVerification();
-    }
+        $record = UserContactUpdate::email($email)->type($contactType)->latest('id')->first();
+        self::checkStatus($record);
 
-    // 取消變更請求，將紀錄中的 「status」 改成 「cancel」
-    public static function cancelRequest(?string $token): void
-    {
-        $record = self::verifyUpdateContactToken($token);
-        if (!$record) throw new Exception("查詢不到「變更」請求，請重新開始");
+        $verifiedRecord = MemberAuthService::verifyToken($token, 'update_contact', ['status' => 'pending']);
+        if (!ValidationService::isMatched($record->id, $verifiedRecord->id)) throw new Exception('驗證錯誤');
 
-        if (in_array($record->status, ['verified', 'expired', 'cancel']))
+        return match ($action) 
         {
-            $messages = [
-                'verified' => "已完成變更，請勿重複操作",
-                'expired'  => "流程已逾期，請重新操作",
-                'cancel'   => "已取消變更，請勿重複操作",
-            ];
-            throw new Exception($messages[$record->status]);
-        }
-        $record->status = 'cancel';
-        $record->save();
+            'completed' => self::completedUpdate($record),
+            'cancel'    => self::cancelUpdate($record),
+            default     => throw new Exception("未知的操作指令"),
+        };
     }
-
 
     // 查詢 UserContactUpdate 是否有符合資料 (用於輪詢查詢）
     public static function searchPollingRecord(array $array): ?UserContactUpdate
@@ -169,8 +147,7 @@ class ContactUpdateService
             throw new Exception("資料庫錯誤");
         } 
 
-        self::assertStatusConsistent($model);
-        if (!$model->verification_at) return false;
+        if ($model->status !== 'completed') return false;
         
         $contactType = $model->contact_type;
         return ($user->$contactType === $model->new_contact);
@@ -200,10 +177,8 @@ class ContactUpdateService
     {
         return DB::transaction( function() use ($user, $newData, $contactType)
         {
-            UserContactUpdate::where('user_id', $user->id)
-                             ->where('contact_type', $contactType)
-                             ->where('status', 'pending')
-                             ->update(['status' => 'cancel']);
+
+            UserContactUpdate::userId($user->id)->type($contactType)->status('pending')->first()?->proceedTo('cancel'); 
 
             $result = UserContactUpdate::create([
                 'user_id'       => $user->id,
@@ -220,30 +195,36 @@ class ContactUpdateService
         });
     }
 
-    // 驗證「Update Contact Token」
-    private static function verifyUpdateContactToken(?string $token): ?UserContactUpdate
-    {
-        $record = UserContactUpdate::where('update_contact_token', $token)
-                                   ->where('status', 'pending')->first();
 
-        if (!$record) return null;
-        if (!MemberAuthService::isTokenValid($record))
+    // 檢查 Status
+    private static function checkStatus(UserContactUpdate $record): void
+    {
+        if (in_array($record->status,  ['completed', 'expired', 'cancel']))
         {
-            $record->status = 'expired';
-            $record->save();
-            throw new Exception("驗證流程已過期，請從新開始");
+            $messages = [
+                'completed' => "已完成變更，請勿重複操作",
+                'expired'   => "流程已逾期，請重新操作",
+                'cancel'    => "已取消變更，請勿重複操作",
+            ];
+            throw new Exception($messages[$record->status]);
         }
-        return $record;
+    } 
 
+    // 「完成」變更
+    private static function completedUpdate(UserContactUpdate $record): string
+    {        
+        MemberEditService::updateContact($record);
+        $record->proceedTo('completed');
+        return 'completed';
     }
 
-    // 檢查資料庫是否存在矛盾
-    private static function assertStatusConsistent(UserContactUpdate $model): void
+
+    // 「取消」變更
+    private static function cancelUpdate(UserContactUpdate $record): string
     {
-        $status = $model->status;
-        $verified = $model->verification_at !== null;
-
-        if (($status === 'verified') !== $verified)
-            throw new Exception("驗證請求記錄狀態異常，請檢查資料庫");
+        $record->proceedTo('cancel');
+        return 'cancel';
     }
+
+
 }

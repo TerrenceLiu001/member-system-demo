@@ -2,15 +2,11 @@
 
 namespace App\Models;
 
-use App\Contracts\MemberTokenInterface;
-use DateTimeInterface;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Password;
+use App\Models\Base\AbstractTokenModel;
+use Illuminate\Database\Eloquent\Builder; 
 
-class PasswordUpdate extends Model implements MemberTokenInterface
+class PasswordUpdate extends AbstractTokenModel 
 {
-    use HasFactory;
 
     protected $table = 'member_center_password_update';
 
@@ -27,7 +23,6 @@ class PasswordUpdate extends Model implements MemberTokenInterface
         'password_token', 
     ];
 
-
     protected $casts = [
         'token_expires_at' => 'datetime',
         'created_at' => 'datetime', 
@@ -35,37 +30,21 @@ class PasswordUpdate extends Model implements MemberTokenInterface
     ];
 
     
-
-
-    // 將 status 從 「pending」 「給為 cancel」 (Type: forgot)
-    public function scopeCancelPendingForgot($query, $userId, $email)
+    public function getTokenName():string
     {
-        return $query->where('user_id', $userId)
-                    ->where('email', $email)
-                    ->where('type', 'forgot')
-                    ->where('status', 'pending')
-                    ->update(['status' => 'cancel']);
+        return 'password_token';
     }
 
-    public function complete(): PasswordUpdate
+    // ────── 查詢範圍 Scope Methods ──────
+
+    public function scopeUserId(Builder $query, int $id): Builder
     {
-        if ($this->status === 'pending') 
-        {
-            $this->status = 'completed';
-            $this->save();
-        }
-        return $this;
+        return $query->where('user_id', $id);
     }
 
-    public function getTokenExpiresAt(): ?DateTimeInterface
+    public function scopeType(Builder $query, string $type): Builder
     {
-        return $this->token_expires_at;   
+        return $query->where('type', $type);
     }
 
-    public function updateTokenAndExpiry(string $token, ?int $time = 10): void
-    {
-        $this->password_token = $token;
-        $this->token_expires_at = now()->addMinutes($time);
-        $this->save();
-    }
 }

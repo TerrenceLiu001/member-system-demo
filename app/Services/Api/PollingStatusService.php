@@ -19,7 +19,6 @@ use Exception;
  * 
  * PollingStatusController::checkContactUpdateStatus
  * ├─ isRequestValid() 
- * |   ├─ verifyBearerToken()  ←private
  * |   └─ resolveContact()  ←private
  * └─ checkUpdateStatus() 
  *     └─ 呼叫 ContactUpdateService 相關方法
@@ -34,9 +33,11 @@ class PollingStatusService
     // 驗證請求，並取得使用者物件
     public static function isRequestValid(Request $request): array
     {
-        $user = self::verifyBearerToken($request->bearerToken());
-        [$contact, $type] = self::resolveContact($request);
+        $user = MemberAuthService::verifyToken($request->bearerToken(), 'login');
+        if(!$user) throw new Exception('身份驗證失敗，請重新登入');
 
+        [$contact, $type] = self::resolveContact($request);
+        
         return ['user' => $user, 'new_contact' => $contact, 'contact_type' => $type];
     }
 
@@ -53,21 +54,6 @@ class PollingStatusService
 
 
     /** ----- 以下為私有方法 ----- */
-
-
-    // 驗證「Bearer Token」
-    private static function verifyBearerToken(?string $token):? User
-    {
-        if(!$token) throw new Exception('缺少身份驗證 Token');
-
-        $user = User::where('bearer_token', $token)->first();
-
-        if (!$user || !MemberAuthService::isTokenValid($user)) {
-            throw new Exception('身份驗證失敗，請重新登入');
-        }
-
-        return $user;
-    }
 
 
     // 提取想要變更的通訊帳號及類型

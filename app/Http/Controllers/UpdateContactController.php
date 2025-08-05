@@ -39,6 +39,7 @@ class UpdateContactController extends Controller
             return view('update_contact', [
                 'email'     => $email, 
                 'new_contact' => $record->new_contact,
+                'contact_type' => 'email',
                 'token'     => $token
             ]);
         }
@@ -48,32 +49,26 @@ class UpdateContactController extends Controller
         }
     }
 
-    //  執行「變更通訊」流程
-    public function updateConfirm(Request $request)
+    // 執行「變更/取消」通訊帳號流程
+    public function buttonConfirm(Request $request)
     {
         try
         {
-            ContactUpdateService::finishConfirm($request->token);
-            return redirect()->route('complete_confirm');
-        }
-        catch (Exception $e)
-        {
-            return redirect()->route('login')->with('error', $e->getMessage());
-        }
-    } 
+            $result = ContactUpdateService::handdleConfirmation($request->only([
+                'email', 'token', 'contact_type', 'action'
+            ]));
 
-    //  執行「取消變更」流程
-    public function cancelConfirm(Request $request)
-    {
-        try
-        {
-            ContactUpdateService::cancelRequest($request->token);
-            return redirect()->route('login')->with('success', '已成功取消變更，請再次登入');
+            return match ($result)
+            {
+                'completed' => redirect()->route('complete_confirm'),
+                'cancel'    => redirect()->route('login')->with('success', '已成功取消變更，請再次登入'),
+                default     => redirect()->route('login')->with('error', '未知錯誤'),
+            };
         }
         catch (Exception $e)
         {
             return redirect()->route('login')->with('error', $e->getMessage());
-        }
+        };
     }
 
     //  載入「完成變更」頁面

@@ -23,12 +23,11 @@ use Exception;
  *
  * ForgotPasswordController::resetPassword
  * └─ authorizeResetPasswordAccess()
- *     ├─ isRequestValid()
- *     └─ verifyPasswordToken() ← private
+ *     └─ isRequestValid()
+ *     
  *
  * ForgotPasswordController::resetConfirm
  * ├─ validateResetRequest()
- * │   └─ verifyPasswordToken() ← private
  * └─ resetPassword()
  *     
  *
@@ -66,7 +65,7 @@ class ForgotPasswordService
     public static function authorizeResetPasswordAccess(string $email, string $token): void
     {
         self::isRequestValid($email);
-        $record = self::verifyPasswordToken($token);
+        $record = MemberAuthService::verifyToken($token, 'password', ['status' => 'pending', 'type' => 'forgot']);
 
         if (!$record) throw new Exception('連結無效，請重新流程');
         if ($record->email !== $email) throw new Exception('Email 與請求權杖並不一致');
@@ -76,10 +75,7 @@ class ForgotPasswordService
     // 驗證「重設密碼」頁面的表單內容是否正確
     public static function  validateResetRequest(?string $token, ?string $password, ?string $confirmed): void
     {
-        if (!self::verifyPasswordToken($token)){
-            throw new Exception('請求無效或已過期，請重新流程');
-        } 
-
+        MemberAuthService::verifyToken($token, 'password', ['status' => 'pending', 'type' => 'forgot']);
         ValidationService::checkPasswordInputs($password, $confirmed);
     } 
 
@@ -89,22 +85,17 @@ class ForgotPasswordService
     {
         DB::transaction(function () use ($token, $password) {
 
-            $record = PasswordUpdate::where('password_token', $token)
-                                    ->where('status', 'pending')
-                                    ->where('type', 'forgot')->first();
-            $record->complete();
+            $record = PasswordUpdate::token($token)->status('pending')->type('forgot')->first();
+            $record->proceedTo('completed');
 
             $user = User::find($record->user_id);
             $user->password = bcrypt($password);  
             $user->save();
             
             $bearerToken = MemberAuthService::generateToken('login');
-            $user->updateTokenAndExpiry($bearerToken, 12);
+            $user->updateTokenAndExpiry($bearerToken, 1440);
         });
     }
-
-
-
 
     
     /** ----- 以下為私有方法 ----- */
@@ -116,7 +107,9 @@ class ForgotPasswordService
 
         return DB::transaction( function () use ($user, $email){
 
-            PasswordUpdate::cancelPendingForgot($user->id, $email);
+            PasswordUpdate::userId($user->id)->email($email)->type('forgot')->status('pending')
+                          ->first()?->proceedTo('cancel');
+
             $record = PasswordUpdate::create([
                 'user_id'  => $user->id,
                 'email'    => $email,
@@ -129,22 +122,5 @@ class ForgotPasswordService
 
             return $record;
         });
-    }
-
-    // 驗證「Password Token」
-    private static function verifyPasswordToken(string $token): ?PasswordUpdate
-    {
-        $record = PasswordUpdate::where('password_token', $token)
-                                ->where('type', 'forgot')
-                                ->where('status', 'pending')->first();
-
-        if (!$record) return null;
-        if (!MemberAuthService::isTokenValid($record)) 
-        {
-            $record->status = 'expired';
-            $record->save();
-            throw new Exception("變更請求已過期，請重新流程");
-        }
-        return $record;      
     }
 }
