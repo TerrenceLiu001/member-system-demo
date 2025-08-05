@@ -1,0 +1,93 @@
+.main_page {
+    padding-top: 30px;
+}
+
+.form_field {
+    gap: 40px;
+
+    .header_section {
+        text-align: center;
+
+        & p {
+            font-size: 26px;
+            line-height: 36.4px;
+        }
+    }
+
+    .info_field {
+        & p {
+            font-family: Noto Sans TC;
+            font-size: 20px;
+            font-weight: 400;
+            line-height: 32px;
+            color: #313131;
+            letter-spacing: 1px;
+
+            & span {
+                font-weight: 500;
+                margin-right: 10px;
+                color:#003E6A;
+                letter-spacing: 0.3px;
+            }
+        }
+    }
+}
+@media (max-width: 767px) {
+    .form_field .header_section p {
+        font-size: 24px;
+        line-height: 33.6px;
+    }
+}
+
+.btn_field {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+
+    form {
+        flex: 1 0 0;
+
+        button {
+            width: 100%; /* 讓 button 撐滿 form，與 flex 對齊 */
+        }
+    }
+
+    .media_btn {
+        padding: 12px 24px;
+        border: 1px solid #005B9A;
+        border-radius: 12px;
+
+        & p {
+            color: #ffffff;
+            font-family: Noto Sans TC;
+            font-weight: 400;
+            font-size: 18px;
+            line-height: 28px;
+        }
+    }
+
+    .cancel {
+        background-color: #ffffff;
+        border: 1px solid #999999;
+        border-radius: 12px;
+        padding: 12px 24px;
+
+        & p {
+            font-family: Noto Sans TC;
+            font-size: 18px;
+            font-weight: 400;
+            line-height: 28px;
+            color: #999999;
+        }
+
+        &:hover {
+            background-color: #ffffff;
+        }
+
+        &:active {
+            background-color: #fffff0;
+        }
+    }
+}
