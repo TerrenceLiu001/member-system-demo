@@ -10,6 +10,25 @@ use Symfony\Component\HttpFoundation\Cookie;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
+/**
+ * 會員單元註冊服務 (UnitRegisterService)
+ *
+ * - 專注於執行會員註冊流程中「最小單元」的邏輯。
+ * - 包含資料驗證、Token 驗證、會員建立與 Cookie 設定等原子性操作。
+ * 
+ *   對應上一層 Service 的流程如下：
+ *  
+ *  MemberRegisterService::authorizeSetPasswordPage
+ *  ├─ ensureAccountValid()   
+ *  └─ verifyRegisterToken()  
+ *
+ *  MemberRegisterService::completeRegistration
+ *  ├─ ensureDataValid()  
+ *  ├─ createMember()     
+ *  └─ setCookie()        
+ *
+ * @used-by \App\Services\MemberRegisterService
+ */
 
 class UnitRegisterService extends AbstractUnitService
 {

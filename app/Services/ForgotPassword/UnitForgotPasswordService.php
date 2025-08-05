@@ -9,6 +9,27 @@ use App\Repositories\Tokens\Implementations\EloquentPasswordUpdateRepository;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
+/**
+ * 忘記密碼單元服務 (UnitForgotPasswordService)
+ *
+ * - 專注於執行忘記密碼流程中「最小單元」的邏輯。
+ * - 包含帳號驗證、Token 驗證、新密碼設定等原子性操作。
+ *
+ *   對應上一層 Service 的流程如下：
+ *
+ *  ForgotPasswordService::authorizeSetPasswordPage()
+ *  ├─ ensureAccountValid()   
+ *  └─ verifyPasswordToken()  
+ *  
+ *  ForgotPasswordService::completeResetPasswordProcess
+ *  ├─ ensureDataValid()     
+ *  └─ resetPassword()        
+ *
+ *  @used-by \App\Services\ForgotPasswordService
+ */
+
+
+
 class UnitForgotPasswordService extends AbstractUnitService
 {
     protected EloquentPasswordUpdateRepository $passwordRepository;

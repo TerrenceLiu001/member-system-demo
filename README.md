@@ -10,26 +10,27 @@
 - [功能模組](#功能模組)
 - [資料表設計](#資料表設計)
 - [開發與執行教學 / 架構說明](#開發與執行教學--架構說明)
+- [聯絡方式](#聯絡方式)
 
+這是一個以 Laravel 12 開發的完整會員系統範例，旨在展示如何運用分層架構與多種設計模式，解決實務中複雜的業務流程與驗證邏輯。本專案遵循 SOLID 原則 與 高內聚、低耦合 的設計理念，實現了可擴展且易於維護的程式碼。
 
-
-
-這是一個以 Laravel 12 開發的完整會員系統範例，旨在展示如何運用分層架構（Service Layer）與設計模式，解決實務中複雜的業務流程與驗證邏輯。本專案以高內聚、低耦合的設計原則，實現了可擴展且易於維護的程式碼。
-
-核心功能涵蓋：註冊、登入、Email 驗證、忘記密碼與資料編輯等，並採用自訂 Token 驗證機制與 AJAX 輪詢，提供穩定與流暢的使用者體驗。
+核心功能涵蓋：會員註冊、登入、Email 驗證、忘記密碼與資料編輯等，並採用自訂 Token 驗證機制，提供安全與流暢的使用者體驗。
 
 ---
 
 ## 專案核心亮點
 
 - **分層架構設計**   
-  採用清晰的 Service-Repository 分層架構，將業務邏輯與資料庫操作徹底分離。Controller 僅負責處理請求與調用服務，大幅提升程式碼的可讀性、可維護性與可測試性。  
+  採用 Service-Repository 的分層架構，將業務邏輯與資料庫操作徹底分離。Controller 專注於處理請求與調用服務，讓程式碼清楚易讀、容易維護與並能夠進行測試。Service 層進一步細分為主 Service、UnitService、Orchestrator 與 Strategy 等角色，以實現職責分明與邏輯協同。 
 
-- **靈活的 Token 驗證機制**  
-  實作一套基於 Strategy Pattern 的 Token 驗證機制，將不同類型的 Token（如註冊、登入、密碼重設）處理邏輯封裝在各自的策略中。這種設計讓驗證流程高度模組化，易於擴充新功能。  
+- **抽象流程與設計模式**   
+  將「寄送驗證信」等共通流程獨立出來，由 Orchestrator 負責統籌，再搭配策略模式（Strategy Pattern），針對註冊、忘記密碼、Email 變更等不同情境實作對應策略。這樣的設計巧妙結合樣板方法模式與策略模式，不僅減少重複程式碼，也提升系統的彈性與擴充能力。
 
-- **Orchestrator 與策略模式**  
-  將「發送驗證信」等共通流程抽象為 VerificationEmailOrchestrator，並結合不同的策略（Strategy）來實作具體邏輯。這完美體現了樣板方法模式與策略模式的結合應用，有效減少重複程式碼並提升系統彈性。  
+- **物件導向設計（OOP）與 SOLID 原則**  
+  專案應用了 SOLID 原則，透過 Interface 與 Abstract Class 來實踐依賴反轉原則（Dependency Inversion Principle, DIP），確保高層模組不依賴低層模組的具體實作，使得整體架構方便日後擴展與維護。每個模組也遵循單一職責原則（Single Responsibility Principle, SRP），以維持良好的模組邊界。 
+
+- **彈性 Token 驗證機制**  
+  實作一套基於策略模式的 Token 驗證機制，將不同類型的 Token（如註冊、登入、密碼重設）處理流程封裝在各自的 Strategy 中。這種設計讓驗證流程彼此獨立、職責單一，便於擴充與維護，並確保系統的安全性與無狀態（Stateless）特性。 
 
 
 ## 功能總覽
@@ -154,4 +155,4 @@
 若您對此專案或我的履歷有興趣，歡迎聯絡我：
 
 - Email：dreaninvain@gmail.com
-- GitHup: [@https://github.com/TerrenceLiu001]
+- GitHub: [TerrenceLiu001](https://github.com/TerrenceLiu001)

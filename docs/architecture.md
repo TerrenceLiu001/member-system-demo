@@ -2,11 +2,12 @@
 
 - [第一章：系統總覽與功能介紹](#第一章系統總覽與功能介紹)
 - [第二章：架構理念與模組設計](#第二章架構理念與模組設計)
-- [第三章：抽象流程的實作與應用](#第三章抽象流程的實作與應用)
-- [第四章：資料模型與資料層的抽象設計](#第四章資料模型與資料層的抽象設計)
-- [第五章：驗證機制與策略模式的應用](#第五章驗證機制與策略模式的應用)
-- [第六章：會員註冊與驗證流程的實作](#第六章會員註冊與驗證流程的實作)
-- [第七章：總結](#第七章總結)
+- [第三章：服務層的檔案結構與功能劃分](#第三章服務層的檔案結構與功能劃分)
+- [第四章：抽象流程的實作與應用](#第四章抽象流程的實作與應用)
+- [第五章：資料模型與資料層的抽象設計](#第五章資料模型與資料層的抽象設計)
+- [第六章：驗證機制與策略模式的應用](#第六章驗證機制與策略模式的應用)
+- [第七章：會員註冊與驗證流程的實作](#第七章會員註冊與驗證流程的實作)
+- [第八章：總結](#第八章總結)
 - [安裝與執行](setup.md)
 
 
@@ -257,7 +258,7 @@
 
 | 功能名稱 | 功能描述 | Controller | Service | 資料表（主要操作） |
 |--------|---------|------------|---------|------------------|
-| 狀態輪詢 | 前端透過定時請求得到通訊更新的驗證狀態 | PollingStatusController | PollingStatusService | `user_contact_updates` |
+| 狀態輪詢 | 前端透過定時請求得到通訊更新的驗證狀態 | PollingStatusController | PollingStatusService | `member_center_user_contact_update` |
 
 <br/>
 <br/>
@@ -279,7 +280,7 @@
 * ### 消除重複程式碼
     * **提取共通流程：** 在精簡服務層的過程中，發現「會員註冊」、「忘記密碼」和「聯絡資訊更新」等功能，都包含了「發送驗證信」這個高度相似的步驟。為了避免重複實作，我們決定將此共通流程獨立出來。
 
-    * **模組化設計：** 為了解決這個問題，我們參考了樣板方法模式（Template Method Pattern），建立一個流程協調器（VerificationEmailOrchestrator）來封裝共通的步驟。接著，運用**策略模式（Strategy Pattern）**的概念，針對不同的功能，實作各自的策略元件（Strategy），讓流程能被替換，同時也保證了功能的獨立性
+    * **模組化設計：** 為了解決這個問題，我們參考了樣板方法模式（Template Method Pattern），建立一個流程協調器（VerificationEmailOrchestrator）來封裝共通的步驟。接著，運用策略模式（Strategy Pattern）的概念，針對不同的功能，實作各自的策略元件（Strategy），讓流程能被替換，同時也保證了功能的獨立性
 
 <br/>
 <br/>
@@ -288,35 +289,196 @@
 
 以下列出系統中採用此設計的模組與其所對應的策略與封裝元件：
 
-| 功能 | 封裝流程協調器 | 策略元件 |
+| 功能 | 封裝流程編排器 | 策略元件 |
 | ------ | ------------------------------- | ------------------------------- |
 | 會員註冊   | `VerificationEmailOrchestrator` | `RegisterVerificationStrategy`       |
 | 忘記密碼   | `VerificationEmailOrchestrator` | `ForgotPasswordVerificationStrategy` |
 | 聯絡資訊更新 | `VerificationEmailOrchestrator` | `UpdateContactVerificationStrategy`  |
 
 這些功能皆包含「檢查請求」 → 「更新並創建紀錄」  → 「準備寄信資料」→ 「寄信」等共通步驟，  
-透過策略與流程協調器拆分出可重用模組，避免撰寫重複流程。
+透過策略與流程編排器拆分出可重用模組，避免撰寫重複流程。
+
+<br/>
 
 ### 登入與會員中心未使用策略封裝的原因
 與上述功能相比，「會員登入」與「會員中心資料維護」的流程較為單一，和其他功能的流程相比，並沒有共通性，  
 僅需進行帳密驗證或資料更新，並無驗證信或多階段流程的需求，故採取簡化實作，直接在 Service 或透過 UnitService 處理即可。
 
+
+<br/>
+<br/>
 <br/>
 
-## 2 - 4 核心服務元件與職責
+# 第三章：服務層的檔案結構與功能劃分
 
-在分層架構中，有兩個服務元件扮演著關鍵角色：ServiceRegistry 和 MemberAuthService。它們不僅是業務邏輯的執行者，更是實現低耦合與高擴展性的核心設計。
+在第二章中，闡述了本專案採用的架構理念，特別是 Service Layer 的分層設計以及主 Service 與 UnitService 的職責劃分。然而，為了實踐此目的需要透過清晰的組織架構來實現。本章將解釋 `app/Services` 目錄中的檔案結構背後的設計理念為何。  
 
-### ServiceRegistry：服務的中央管理員
+將從整體目錄概覽開始，逐步揭示主 Service 與 UnitService 的檔案存放原因，以及專案如何將不同的策略模式集中管理。透過本章的說明，希望能對專案的程式碼結構有全面的理解，為後續深入探討各項抽象流程與實作細節奠定堅實的基礎。
 
-ServiceRegistry 扮演著中央註冊表的角色，負責管理並提供系統中所有核心服務的實例。它的主要職責並非執行業務邏輯，而是協調不同服務之間的依賴關係。透過依賴注入（Dependency Injection）的方式，ServiceRegistry 將所需的服務實例傳遞給其他需要它的類別。
+## 3 - 1 核心服務層目錄概覽
 
-這種設計完美地實踐了依賴反轉原則（Dependency Inversion Principle）。例如，UnitRegisterService 不需自己去實例化 MemberAuthService，而是透過 ServiceRegistry 獲取。如此一來，UnitRegisterService 只需知道 ServiceRegistry 這個抽象管理員，而不需要關心 MemberAuthService 的具體實作細節。這使得服務層的程式碼更乾淨、更易於維護和測試。
+本專案的服務層所有程式碼皆位於 `app/Services` 目錄下。該目錄採用模組化的構思，將不同職責的元件清晰地劃分開來，藉此來提升架構的清晰度與後續的維護效率。以下是服務層核心目錄的結構概覽：
+  
+```
+    app/Services
+    ├── Api 
+    │    └── PollingStatusService.php   ------>    用於輪詢檢查
+    ├── MemberLogin                 ───┐        ┌──────────────────────
+    ├── MemberRegister                 │        │  主要實現五個主要功能：      
+    ├── UpdateContact                  │        │                      
+    ├── ForgotPassword                 │ -----> │  登入、註冊、忘記密碼、  
+    ├── Strategies                     │        │  通訊資料變更、會員編輯  
+    │    ├── Tokens                    │        └──────────────────────
+    │    └── Verification              │
+    ├── MemberEditService.php       ───┘
+    ├── MemberAuthService.php       ---------->   驗證權限相關服務
+    ├── MemberEmailService.php      ---------->   寄送信件服務
+    ├── ValidationService.php       ---------->   可重複用的驗證函數
+    ├── ServiceRegistry.php     ───────┐  
+    └── AbstractUnitService.php ───────┘ ----->   服務層的中央管理員   
+
+    ---------------------------------------------
+    註：Strategies/Tokens 用於實作 MemberAuthService.php 中的 Token 驗證流程。
+    ---------------------------------------------
+```
+<br/>
+
+- **ServiceRegistry**： 這是服務層的中央管理員。它負責管理所有核心服務的實例，並透過依賴注入（Dependency Injection）的方式，為需要服務的類別提供存取物件的入口。
+
+- **AbstractUnitService**： 為所有 UnitService 提供了共通的基礎，確保它們都能透過注入 ServiceRegistry 的方式，方便地存取並使用所有核心服務。
+
+- **MemberAuthService**： 作為專案身分驗證的核心服務，它負責處理所有關於 Token 的生成、驗證與管理。
+
+- **ValidationService**： 封裝了專案中多個功能會共用的驗證邏輯，例如電子郵件格式檢查、密碼強度驗證等，以避免程式碼重複。
+
+- **MemberEmailService**： 扮演著 Facade 的角色，為外部提供了與電子郵件相關的簡化介面。將寄送不同類型驗證信件的流程封裝起來，並提供生成驗證連結的輔助方法。
+
+- **PollingStatusService**： 此服務專用於處理「變更通訊資料」的輪詢請求。它負責驗證使用者身分，並查詢資料庫中通訊資料變更紀錄的最新狀態，以提供即時的進度更新。
+
+- **功能性目錄(e.g. MemberLogin, MemberRegister)**： 每個功能性目錄對應一個獨立的業務模組，專門用來放置該功能的主 Service 類別與對應的 UnitService，實現清楚的模組劃分與職責分工。
+
+- **Strategies 目錄**： 此目錄集中管理所有與策略模式相關的檔案，其下分為 Tokens 和 Verification 兩個子目錄，分別處理 Token 策略和郵件驗證策略。
+
+<br/>
+
+透過這樣的目錄結構，可以迅速定位到特定功能的程式碼，並理解每個檔案所扮演的角色，從而大幅降低維護與開發的難度。
+
+<br/>
+
+## 3 - 2 主 Service 與 UnitService 的職責劃分
+
+為了實踐單一職責原則（Single Responsibility Principle），將系統的 Service Layer 設計成「主 Service」與「UnitService」的協作模式。此架構旨在將複雜的流程分解為可管理、可重用的單元，從而使程式更易於理解與維護。
+
+<br/>
+
+### 主 Service：流程的協調者
+
+主 Service 類別位於各自的功能性目錄下，例如 MemberLogin/MemberLoginService.php。它們的主要職責是：  
+
+- **流程控制**： 作為業務流程的調度者，主 Service 負責定義整個功能的執行順序。它會協調多個 UnitService 或其他核心服務，但不處理具體的業務細節。
+
+- **介面統一**： 主 Service 對外提供一個簡潔的介面，例如 MemberLoginService::login()，將後台複雜的執行步驟隱藏起來，讓 Controller 只需要關注調用主 Service，而無需理解內部流程。
+
+<br/>
+
+### UnitService：單一職責的執行單元 
+
+UnitService 類別與其對應的主 Service 放在同一個功能性目錄下，例如 MemberLogin/UnitLoginService.php。它們的主要職責是：
+
+- **專注於單一任務**： 每個 UnitService 都專門負責處理一個獨立、原子性的業務操作，例如資料庫的讀寫、資料的驗證、密碼的雜湊處理等。
+- **為主 Service 服務**： UnitService 的存在是為了支持其對應的主 Service 完成複雜流程。它將主 Service 所需的底層細節操作封裝起來，使得主 Service 的邏輯保持精簡且易於閱讀。
+
+<br/>
+
+### 兩者的協作模式
+
+這種分工體現了委派模式（Delegation Pattern）的精髓：主 Service 透過將具體的業務操作「委派」給其專屬的 UnitService，從而保持自身的精簡和清晰。這種模式的好處包括：  
+
+- **高內聚**： 每個 UnitService 都專注於自己的單一職責，程式碼更為緊湊，且與其主 Service 關係緊密。
+- **低耦合**： 主 Service 不直接與底層實作細節耦合，而是透過調用 UnitService 來完成任務。
+- **易於測試**： 單一職責的 UnitService 類別更容易進行獨立的單元測試。
+
+<br/>
+
+透過這樣的劃分，專案的業務邏輯可以被有效地分解成清晰且可管理的區塊，為之後的維護或擴充打下良好的基礎。
+
+### 實踐範例
+
+**主 Service：MemberRegisterService 範例**  
+
+以下範例展示了 MemberRegisterService 如何作為流程的協調者，將不同的註冊流程委派給  
+VerificationEmailOrchestrator 和 UnitRegisterService。
+
+```php
+    class MemberRegisterService
+    {
+        // 注入流程編排器和執行單元
+        protected VerificationEmailOrchestrator $orchestrator;
+        protected UnitRegisterService $unitService; 
+
+        public function __construct(
+            VerificationEmailOrchestrator $orchestrator,
+            UnitRegisterService $unitService
+        )
+        {
+            $this->orchestrator = $orchestrator;
+            $this->unitService  = $unitService;
+        }
+
+        // 開始「註冊」流程的第一步：發送驗證信
+        public function initiateRegistrationProcess(Request $request): void
+        {
+            // 委派任務：將發送驗證信的流程交給 Orchestrator
+            $this->orchestrator->dispatchVerification(
+                'register', 
+                $request
+            );
+        }
+
+        // 載入「設定密碼」頁面
+        public function authorizeSetPasswordPage(string $email, string $token): void
+        {
+            // 委派任務：驗證 Email
+            $this->unitService->ensureAccountValid($email);
+
+            // 委派任務：驗證 Register Token
+            $this->unitService->verifyRegisterToken(
+                $token, $email
+            );
+        }
+
+        // 完成「註冊」流程的最後一步
+        public function completeRegistrationProcess(
+            ?string $email, 
+            ?string $password, 
+            ?string $confirmed
+        ): Cookie
+        {
+            // 委派任務：驗證所有輸入資料
+            $validatedData = $this->unitService->ensureDataValid(
+                $email, $password, $confirmed
+            );
+
+            // 委派任務：建立新會員
+            $user = $this->unitService->createMember($validatedData);
+
+            // 委派任務：設定登入 Cookie
+            $cookie = $this->unitService->setCookie($user->bearer_token);
+
+            return $cookie;
+        }
+    }
+```
+
+**UnitService：UnitRegisterService 範例**  
+
+UnitRegisterService 專注於處理主 Service 委派過來的單一、原子性任務。它封裝了具體的實作細節，例如資料庫操作、輸入驗證與 Token 處理，同時也展示了如何調用 ServiceRegistry 中的其他核心服務，以下節選部分程式碼做為概念介紹。
 
 ```php
     class UnitRegisterService extends AbstractUnitService
     {
-        // ...
+        protected EloquentGuestRepository $guestRepository;
+
         public function __construct(
             ServiceRegistry $services,
             EloquentGuestRepository $guestRepository
@@ -325,28 +487,220 @@ ServiceRegistry 扮演著中央註冊表的角色，負責管理並提供系統�
             parent::__construct($services);
             $this->guestRepository = $guestRepository;
         }
-        // ...
-    }    
+
+        // 專注於單一任務：建立新會員
+        public function createMember(array $data): User
+        {
+            [
+                'email'    => $email, 
+                'password' => $password, 
+                'guest'    => $guest
+            ] = $data;
+            
+            return DB::transaction(function() use ($email, $password, $guest) {
+                
+                // 將 Guests 中的 Record 標記為 completed
+                $this->guestRepository->markStatus($guest, 'completed');
+
+                // 在 Users 中建立 Record
+                $user = $this->services->userRepository->create([
+                    'email'       => $email,
+                    'password'    => bcrypt($password),
+                    'guest_id'    => $guest->id,
+                ]);
+
+                // 透過 ServiceRegistry 調用其他服務
+                $bearerToken = $this->services
+                                    ->memberAuthService
+                                    ->generateToken('login');
+
+                $this->services->userRepository->handleToken(
+                    $user, $bearerToken, 1440
+                );
+
+                return $user;
+            });
+        }
+
+        // 專注於單一任務：驗證 Register Token
+        public function verifyRegisterToken(string $token, string $email): void
+        {
+            // 透過 ServiceRegistry 調用 MemberAuthService
+            $guest = $this->services->memberAuthService->verifyToken(
+                $token,
+                'register'
+            );
+
+            if (!$guest || $guest->email !== $email) {
+                throw new Exception("無效連結，請重新註冊");
+            }
+        }
+    }
 ```
 
-### MemberAuthService：身分驗證的核心
+<br/>
 
-MemberAuthService 是 Token 驗證機制的核心。這個服務的職責非常專一：管理 Token 的生成、驗證與處理流程。為了實現高度彈性，它結合了樣板方法模式與策略模式。
+## 3 - 3 策略模式 (Strategy) 的檔案結構與應用
 
-- 樣板模式： MemberAuthService::verifyToken() 方法定義了一個固定的驗證流程骨架，確保所有 Token 的驗證步驟都一致
-- 策略模式： 這個固定流程中的可變部分，例如「檢查 Token 是否過期」或「處理過期後的邏輯」，則被委託給不同的策略類別（TokenStrategy）來完成。
+為了讓業務邏輯更有彈性，也方便日後新增功能，本專案在 app/Services 目錄下設立了 Strategies 資料夾，集中管理所有與策略模式相關的檔案。這樣的設計把「策略的定義」、「實作內容」和「調用方式」清楚區分，讓架構更有條理，也更容易維護與擴充。
 
-這種設計使得 MemberAuthService 本身不帶有任何具體的業務邏輯，它只負責協調。當需要新增一個 Token 類型時，只需要建立一個新的策略，並在 TokenStrategyRegistry 中註冊即可，完全不需要修改 MemberAuthService 的核心程式碼，體現了開閉原則（Open/Closed Principle）。
+### 目錄結構如下：
+
+```
+    app/Services/Strategies
+
+        Tokens
+        ├── Contracts                 
+        │   └── TokenStrategyInterface.php    
+        ├── Implementations                 
+        │   ├── LoginTokenStrategy.php  
+        │   ├── RegisterTokenStrategy.php  
+        │   └── ...
+        ├── TokenStrategyRegistry.php
+        └── AbstractTokenStrategy.php  
+
+        Verification
+        ├── Contracts
+        │   └── VerificationStrategyInterface.php
+        ├── Implementations
+        │   ├── ForgotPasswordVerificationStrategy.php
+        │   ├── RegisterVerificationStrategy.php
+        │   └── ...
+        ├── VerificationEmailOrchestrator.php
+        └── AbstractVerificationStrategy.php
+
+```
+
+### 各子目錄與元件的職責
+
+- **Contracts 目錄**：存放用來定義 Strategy 必須實作方法的 Interface，確保了程式碼的一致性。例如，TokenStrategyInterface.php 定義了 Token 策略的標準行為，而 VerificationStrategyInterface.php 則定義了驗證流程策略的基本操作。
+
+- **Implementations 目錄**：存放了實現 Contracts 中介面的具體策略（Concrete Strategies）。每個類別都代表一種特定的業務邏輯實作。例如，LoginTokenStrategy.php 專門處理登入 Token 的生命週期與驗證邏輯； RegisterVerificationStrategy.php 則負責註冊郵件驗證的具體實作。
+
+- **TokenStrategyRegistry**：負責集中管理所有 TokenStrategy 實例，透過 get() 方法可依照傳入的鍵（如 register、login）取得對應策略。這種設計統一了策略的註冊與取得流程，類似「服務定位器」的角色。
+
+- **Abstract Strategy 類**：這些類別提供了共用的基礎架構與通用邏輯（如 resolveModel、isExpired），讓具體策略只需專注實作各自的業務邏輯，減少重複程式碼。
+
+- **VerificationEmailOrchestrator**： 屬於「流程編排器」而非策略本身，採用樣板方法模式（Template Method Pattern），定義流程架構，並在過程中根據不同策略動態調用對應方法，達到流程固定、邏輯可變的設計目標。
+
+<br/>
+
+這種將設計模式的相關元件獨立拆分的做法，使得未來新增或修改策略時，無需變動核心業務邏輯，僅需新增或修改 Implementations 中的檔案，並在 Registry 中註冊即可，極大提升了系統的彈性與可擴展性。
+
+<br/>
+
+## 3 - 4 核心服務元件：ServiceRegistry 與 MemberAuthService
+
+在本專案的服務層中，ServiceRegistry 與 MemberAuthService 扮演著至關重要的角色，前者是整個服務層的樞紐，後者則是所有會員身分驗證的核心。這兩個元件的設計體現了依賴反轉原則（Dependency Inversion Principle），確保了服務層的彈性與可擴展性。
+
+<br/>
+
+### ServiceRegistry：服務層的中央管理員
+
+ServiceRegistry 類別的核心職責是作為一個服務容器 (Service Container)。它的存在是為了集中管理所有核心服務（如 ValidationService、MemberEmailService 等）的實例，並透過依賴注入（Dependency Injection）的方式，為需要這些服務的類別提供統一的存取入口。
+
+**設計理念與實踐：**  
+
+- **抽象基底 ( AbstractUnitService )**： 為了讓所有 UnitService 都能方便地存取 ServiceRegistry，我們建立了一個抽象基底 AbstractUnitService。這個類別在建構子中接收 ServiceRegistry 的實例，並將其賦值給一個受保護的屬性 $services。
+
+    ```php
+        // AbstractUnitService.php
+
+        abstract class AbstractUnitService
+        {
+            protected ServiceRegistry $services;
+
+            public function __construct(ServiceRegistry $services)
+            {
+                $this->services = $services;
+            }
+        }
+    ```
+- **依賴注入的實踐**：具體的 UnitService 類別（例如 UnitRegisterService）則繼承自 AbstractUnitService。在建構子中，除了接收特定的 Dependency 外，還會呼叫 `parent::__construct($services)`，將 ServiceRegistry 傳遞給父類別。
+
+    ```php
+        // UnitRegisterService.php
+
+        class UnitRegisterService extends AbstractUnitService
+        {
+            protected EloquentGuestRepository $guestRepository;
+
+            public function __construct(
+                ServiceRegistry $services,
+                EloquentGuestRepository $guestRepository
+            )
+            {
+                // 透過父類別將 ServiceRegistry 注入
+                parent::__construct($services);
+                $this->guestRepository = $guestRepository;
+            }
+        }
+    ```
+- **統一入口**：透過這樣的設計，UnitRegisterService 及其子類別就可以透過 `$this->services->serviceName` 的方式，輕鬆地調用 ServiceRegistry 中所管理的任何服務。這極大地簡化程式碼，避免每個服務都必須手動注入所有重複的依賴。
+
+<br/>
+
+### MemberAuthService：身分驗證的核心服務
+
+MemberAuthService 是專門處理所有與會員身分驗證相關業務的核心服務。它不僅負責管理 Token 的生成、驗證與生命週期，其內部更是結合了策略模式（Strategy Pattern）的構思。
+
+**設計理念與實踐：**  
+
+- **策略模式的應用** ：MemberAuthService 本身並不處理具體的 Token 驗證或生成細節，而是透過 TokenStrategyRegistry 取得對應的策略實例。例如，在 `verifyToken()` 方法中，會依據傳入的 method 參數（如 'login' 或 'register'）動態地取得不同的 Strategy 來執行驗證。
+
+- **流程骨架與委派** ：在 `verifyToken()` 方法中，定義了固定的驗證流程骨架：
+`解析 Token -> 檢查模型是否存在 -> 檢查是否過期`。而其中的每個步驟，都委派給了實例化的 Strategy 去執行，這使得流程本身是固定的，但具體的驗證邏輯可以根據不同的策略而改變。
+
+    ```php
+    class MemberAuthService
+    {    
+        protected TokenStrategyRegistry $tokenStrategyRegistry;
+
+        // 根據不同「方法」驗證 Token 是否有效
+        public function verifyToken(
+            TokenCapableInterface|string $input, 
+            string $method, 
+            ?array $scopes = []
+        ): ?TokenCapableInterface 
+        {
+            // 步驟 1: 根據傳入的方法名稱，從註冊表取得對應的策略
+            $strategy = $this->tokenStrategyRegistry->get($method);
+
+            // 步驟 2: 解析 Token，並根據策略取得對應的 Model
+            $model = is_string($input) ? $strategy->resolveModel($input, $scopes) : $input;
+
+            if (!$model) throw new Exception($strategy->getInvalidMessage()); 
+            
+            // 步驟 3: 檢查 Token 是否過期
+            if ($strategy->isExpired($model)) 
+            {
+                $strategy->handleExpired($model);
+                throw new Exception($strategy->getExpiredMessage());
+            }
+            return $model; 
+        }
+    }
+    ```
+
+- **解耦與可擴展性** ：此設計使得 MemberAuthService 不關心 Token 具體是如何生成的，也不關心 Token 模型的細節。可以輕鬆地新增或修改 Token 策略，而無需變動 MemberAuthService 的程式碼，完全符合依賴反轉原則。
+
+- **獨立的 Cookie 處理** ：`setBearerTokenCookie()` 和 `forgetBearerToken()` 方法將 Cookie 的處理邏輯封裝起來，讓其他服務在調用時無需關心底層的 Cookie 函式，這也是單一職責原則的良好實踐。
+
+<br/>
+
+總結來說，ServiceRegistry 提供了穩固的架構基礎，讓各個服務能夠解耦並協同運作；而 MemberAuthService 則透過靈活的設計模式，成為處理複雜身分驗證邏輯的核心引擎。這兩個元件共同確保了整個服務層的健壯與可擴展性。
 
 <br/>
 <br/>
 <br/>
 
-# 第三章：抽象流程的實作與應用
 
-## 3 - 1 核心模式：調控器（Orchestrator）與策略（Strategy）
 
-在第二章我們提到，為了抽象化共通的業務流程並提高靈活性，採用了 Orchestrator 結合 Strategy 的設計模式。本章將探討這個核心模式的實作細節，揭示如何將抽象理念轉化為可維護、可擴展的實際程式碼。
+# 第四章：抽象流程的實作與應用
+
+## 4 - 1 核心模式：調控器（Orchestrator）與策略（Strategy）
+
+在前面章節有提到，為了抽象化共通的業務流程並提高靈活性，採用了 Orchestrator 結合 Strategy 的設計模式。本章將探討這個核心模式的實作細節，揭示如何將抽象理念轉化為可維護、可擴展的實際程式碼。
 
 <br/>
 
@@ -405,12 +759,12 @@ VerificationStrategyInterface 是這個模式的靈魂，它定義了 Orchestrat
 
 這確保了無論是哪種流程，Orchestrator 都能以一致的方式來呼叫它們。從程式碼中，可以清楚看到每個策略如何實現自己的專屬的業務流程：
 
-* #### validateAndPrepareRequest():  
-    `RegisterVerificationStrategy` 會檢查信箱是否已經被註冊，而 `UpdateContactVerificationStrategy`
+* #### validateAndPrepareRequest:  
+    在 `RegisterVerificationStrategy` 會檢查信箱是否已經被註冊；而在 `UpdateContactVerificationStrategy`
     則注重於，更新的電子郵件是否有效、與目前的信箱是否相同等專屬判斷。
 
-* #### createAndUpdateRecord():
-    `RegisterVerificationStrategy` 則負責處理 `member_center_guests` 資料表；而`UpdateContactVerificationStrategy` 則負責處理 `member_center_user_update_contact` 資料表。
+* #### createAndUpdateRecord:
+    在 `RegisterVerificationStrategy` 則負責處理 `member_center_guests` 資料表；而`UpdateContactVerificationStrategy` 則負責處理 `member_center_user_update_contact` 資料表。
 
 * #### 註冊流程的驗證邏輯
     ``` php
@@ -460,7 +814,7 @@ VerificationStrategyInterface 是這個模式的靈魂，它定義了 Orchestrat
 然後在 VerificationEmailOrchestrator::dispatchVerification() 新增方法，就可以直接使用，此設計確保系統可以輕鬆擴展相關功能。
 
 
-## 3 - 2 非封裝流程的簡化設計考量
+## 4 - 2 非封裝流程的簡化設計考量
 
 雖然 `Orchestrator` + `Strategy` 模式為複雜流程提供了高度的彈性與可維護性，但在某些流程中，過度抽象反而會增加不必要的複雜度。因此，對於流程較為單純的功能，採取了更簡化的實作方式。
 
@@ -490,7 +844,7 @@ VerificationStrategyInterface 是這個模式的靈魂，它定義了 Orchestrat
 <br/>
 <br/>
 
-# 第四章：資料模型與資料層的抽象設計
+# 第五章：資料模型與資料層的抽象設計
 
 本章將詳細介紹本專案的資料模型（Model）與資料庫存取層（Repository）的設計哲學。    
 
@@ -498,7 +852,7 @@ VerificationStrategyInterface 是這個模式的靈魂，它定義了 Orchestrat
 
 <br/>
 
-## 4 - 1 資料模型（Model）的分層抽象
+## 5 - 1 資料模型（Model）的分層抽象
 
 此專案使用的 Model 不僅僅是資料庫資料表的映射，更是具備方法的物件（object）。為了讓這些方法有共通標準，使程式碼能重複使用，因此將 Model 設計成兩個層次。
 
@@ -520,7 +874,7 @@ VerificationStrategyInterface 是這個模式的靈魂，它定義了 Orchestrat
 
 <br/>
 
-## 4 - 2 資料庫存取層（Repository）的分層抽象
+## 5 - 2 資料庫存取層（Repository）的分層抽象
 
 Repository 層作為 Service 層與 Model 層之間的唯一橋樑，其核心職責是封裝所有資料存取細節。我們同樣採用了分層抽象，確保 Repository 的職責單一，且讓程式碼可以重複使用。
 
@@ -543,7 +897,7 @@ Repository 層作為 Service 層與 Model 層之間的唯一橋樑，其核心�
 
 <br/>
 
-## 4 - 3 Model 和 Repository 相關圖表 
+## 5 - 3 Model 和 Repository 相關圖表 
 
 <br/>
 
@@ -591,13 +945,13 @@ Repository 層作為 Service 層與 Model 層之間的唯一橋樑，其核心�
 <br/>
 <br/>
 
-# 第五章：驗證機制與策略模式的應用
+# 第六章：驗證機制與策略模式的應用
 
 本章將詳細介紹本專案的 Token 驗證機制，這不僅是身分驗證的核心，也實現無狀態（Stateless）、可擴展、安全性的關鍵。設計時參考了樣板方法模式（Template Method Pattern）與策略模式（Strategy Pattern），讓不同類型的 Token（如註冊、登入）能以各自獨立的單元操作進行處理，同時保持程式碼的整潔與一致性。
 
 <br/>
 
-## 5 - 1 Token 驗證機制的核心設計理念
+## 6 - 1 Token 驗證機制的核心設計理念
 
 此系統的 Token 驗證機制採用 Stateless 設計，伺服器不需儲存任何 Session 資訊。當使用者帶著 Token 發來請求時，伺服器只負責驗證 Token 本身的有效性，這讓系統更容易擴充其他功能。
 
@@ -610,7 +964,7 @@ Repository 層作為 Service 層與 Model 層之間的唯一橋樑，其核心�
 <br/>
 
 
-## 5 - 2 策略模式與樣板方法模式的實現
+## 6 - 2 策略模式與樣板方法模式的實現
 
 為了實現高彈性、低耦合的驗證機制，結合了兩種設計模式：樣板方法模式和策略模式。  
 
@@ -668,13 +1022,13 @@ MemberAuthService::verifyToken() 方法作為樣板，定義了所有 Token 驗�
 <br/>
 <br/>
 
-# 第六章：會員註冊與驗證流程的實作
+# 第七章：會員註冊與驗證流程的實作
 
 本章將透過一個完整的業務場景——會員註冊與驗證流程，來展示我們前幾章所設計的架構如何實際應用。這個流程將涵蓋從使用者提交註冊資訊，到後端處理、寄送驗證信，以及最終完成帳號驗證的整個過程。
 
 <br/>
 
-## 6 - 1 註冊流程的整體架構
+## 7 - 1 註冊流程的整體架構
 
 整個註冊流程被拆解為三個獨立但相互協作的階段，以確保程式碼職責單一，流程清晰易懂。
 
@@ -687,7 +1041,7 @@ MemberAuthService::verifyToken() 方法作為樣板，定義了所有 Token 驗�
 
 <br/>
 
-## 6 - 2 啟動註冊驗證流程： Orchestrator 與策略模式
+## 7 - 2 啟動註冊驗證流程： Orchestrator 與策略模式
 
 註冊流程的核心，是透過 VerificationEmailOrchestrator 和 RegisterVerificationStrategy 協同完成。  
 這種設計模式的應用，將流程控制與具體邏輯徹底分離。
@@ -719,7 +1073,7 @@ MemberAuthService::verifyToken() 方法作為樣板，定義了所有 Token 驗�
 
 <br/>
 
-## 6 - 3 授權與完成註冊：Token 的最終驗證
+## 7 - 3 授權與完成註冊：Token 的最終驗證
 
 當使用者收到驗證信並點擊連結後，流程進入第二個階段，由 MemberRegisterController 負責處理。這個階段的程式碼展示了 MemberAuthService 如何被應用，以確保整個流程的安全性。
 
@@ -752,7 +1106,7 @@ MemberAuthService::verifyToken() 方法作為樣板，定義了所有 Token 驗�
 <br/>
 <br/>
 
-# 第七章：總結
+# 第八章：總結
 
 透過本專案，我成功地將抽象的設計理念轉化為實際可運作的程式碼，有效地解決了傳統單體架構中常見的職責不清與維護困難等問題。這個專案的核心價值與能力展現在以下幾個方面：
 

@@ -20,7 +20,6 @@
 ```bash
     composer install
     npm install
-    npm run dev
 ```
 
 ### 3. 複製並修改環境設定檔

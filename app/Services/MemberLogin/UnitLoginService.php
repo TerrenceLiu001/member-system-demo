@@ -10,6 +10,31 @@ use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Cookie;
 use Exception;
 
+/**
+ * 會員單元登入服務（UnitLoginService）
+ *
+ * - 專注於執行會員登入流程中「最小單元」的邏輯。
+ * - 包含帳號類型判斷、輸入驗證、帳密比對與 Token 設定等原子性操作。
+ *
+ *   對應上一層 Service 的流程如下：
+ *
+ *  MemberLoginService::handleLogin
+ *  │
+ *  ├─ MemberLoginService::ensureRequestValid
+ *  │  ├─ checkLoginType()    
+ *  │  └─ validateInput() 
+ *  │  
+ *  ├─ verifyCredentials()    
+ *  └─ setLogin()             
+ *
+ *  MemberLoginService::handleLogout
+ *  └─ handleLogout()
+ *     └─ setLogout()         
+ *
+ * 
+ * @used-by \App\Services\MemberLoginService
+ */
+
 
 class UnitLoginService
 {

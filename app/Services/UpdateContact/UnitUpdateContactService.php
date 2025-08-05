@@ -9,6 +9,29 @@ use App\Services\AbstractUnitService;
 use App\Repositories\Tokens\Implementations\EloquentContactUpdateRepository;
 use Exception;
 
+/**
+ * 通訊資料變更單元服務 (UnitUpdateContactService)
+ *
+ * - 專注於執行通訊資料變更流程中「最小單元」的邏輯。
+ * - 包含帳號查找、Token 驗證、資料確認與實際更新等原子性操作。
+ *
+ *   對應上一層 Service 的流程如下：
+ *
+ * UpdateContactService::authorizeUpdateContactPage()
+ * ├─ findUserByAccount()           
+ * ├─ verifyUpdateContactToken()     
+ * └─ ensureRecordMatchesUser()     
+ * 
+ * UpdateContactService::handleConfirmation()
+ * ├─ ensureDataValid()                     
+ * └─ completedUpdate() or cancelUpdate()    
+ *
+ * @used-by \App\Services\UpdateContactService
+ *
+ */
+
+
+
 class UnitUpdateContactService extends AbstractUnitService
 {
     protected EloquentContactUpdateRepository $contactRepository;
