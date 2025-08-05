@@ -1,483 +1,768 @@
 # 專案目錄
 
-- [1️ 系統總覽與功能介紹](#1️-系統總覽與功能介紹)
-- [2️ 註冊模組與認證機制](#2️-註冊模組與認證機制)
-- [3️ 會員中心與登入模組](#3️-會員中心與登入模組)
-- [4️ 聯絡資訊變更與輪詢模組](#4️-聯絡資訊變更與輪詢模組)
-- [5️ 忘記密碼與重設密碼模組](#5️-忘記密碼與重設密碼模組)
+- [第一章：系統總覽與功能介紹](#第一章系統總覽與功能介紹)
+- [第二章：架構理念與模組設計](#第二章架構理念與模組設計)
+- [第三章：抽象流程的實作與應用](#第三章抽象流程的實作與應用)
+- [第四章：資料模型與資料層的抽象設計](#第四章資料模型與資料層的抽象設計)
+- [第五章：驗證機制與策略模式的應用](#第五章驗證機制與策略模式的應用)
+- [第六章：會員註冊與驗證流程的實作](#第六章會員註冊與驗證流程的實作)
+- [第七章：總結](#第七章總結)
 - [安裝與執行](setup.md)
 
 
 
+<br/>
+<br/>
+<br/>
 
-# 1️ 系統總覽與功能介紹
+# 第一章：系統總覽與功能介紹
 
-本專案是一套以 **Laravel 12** 開發的會員系統範例，模擬實務常見的使用者流程：  
+## 1 - 1 導言
+本專案是一套以 **Laravel 12** 開發的會員系統範例，模擬實務上常見的使用者流程：  
 **註冊 → 登入 → 編輯個人資料 → 驗證敏感操作（如變更 Email、忘記密碼）**。  
 
-系統設計著重於模組分離與安全機制，涵蓋完整的會員功能，包含註冊驗證、登入權限、資料設定與帳號保護機制。  
+系統設計著重於模組化的拆分，涵蓋註冊驗證、登入授權、會員資料設定及帳號安全保護等功能。  
 
-專案採用 **自訂 Token 驗證機制**，將系統功能切分為四大主要模組，並以 **Service Layer 架構** 搭配 **Middleware 驗證邏輯** 實作。  
-藉此有效落實職責分離與流程一致性，並兼顧使用者操作的安全需求與後續擴充彈性。
+採用 **自訂的 Token 驗證機制**，將系統功能切分為五個主要模組，並以 **Service Layer 架構** 負責封裝流程邏輯，再結合 **Middleware 驗證邏輯** 控管登入狀態與存取權限，確保受保護頁面之存取安全。 
 
----
-
-## 🔧 四大功能模組
-
-本系統功能共分為四個主模組，對應實際使用者操作場景與 Controller 設計如下：
-
-| 功能模組       | Controller                        | 說明                                               |
-|----------------|-----------------------------------|----------------------------------------------------|
-| 1️⃣ 註冊功能   | `MemberRegisterController`         | 處理訪客註冊流程，包含 Email 驗證與密碼設定         |
-| 2️⃣ 忘記密碼   | `ForgotPasswordController`         | 發送驗證信並使用 token 重設密碼                    |
-| 3️⃣ 變更 Email | `UpdateContactController` + `PollingStatusController` | 使用者更新 Email 並前端輪詢驗證狀態   |
-| 4️⃣ 會員中心   | `MemberCenterController`           | 提供登入後首頁與個人資料編輯功能                   |
-
----
-
-### 📘 功能模組詳解
-
-#### 1. 註冊功能模組
-- 訪客填寫 Email → 系統發送驗證信
-- 驗證成功後，導向設定密碼頁完成註冊
-- 實作 email 驗證 + 訪客 token 流程
-- Controller：`MemberRegisterController`
-
-#### 2. 忘記密碼模組
-- 使用者點選忘記密碼 → 系統發送重設連結
-- 驗證 token 後導向設定新密碼頁
-- Controller：`ForgotPasswordController`
-
-#### 3. 變更 Email 模組
-- 登入後可提出變更 Email 申請
-- 系統發送驗證信 → 前端輪詢後台驗證狀態
-- Controller：`UpdateContactController`  
-- 輪詢 API：`PollingStatusController`
-
-#### 4. 會員中心模組
-- 登入後進入首頁，可瀏覽個人資料
-- 提供暱稱、性別、年齡層的資料編輯功能
-- Controller：`MemberCenterController`
+藉由服務層的設計，我們落實了職責分離，並確保不同模組的流程具備一致性，不僅強化了邏輯與安全性，也為未來的擴充奠定良好基礎。
 
 
+## 1 - 2 功能模組
+
+本系統功能共分為五個主模組，對應實際操作場景與 Controller 設計如下：
+
+| 功能模組      | Controller                   | 說明  |
+|------------ |------------------------------|----------------------------------------------------|
+|  會員登入    | `MemberLoginController`      | 提供登入、登出功能
+|  會員註冊    | `MemberRegisterController`   | 處理訪客註冊流程，包含電子郵件驗證與密碼設定 |
+|  忘記密碼    | `ForgotPasswordController`   | 發送驗證信並重設密碼  |
+|  聯絡資訊更新 | `UpdateContactController` + `PollingStatusController` | 使用者更新電子郵件，並透過輪詢機制即時驗證狀態  |
+|  會員中心    | `MemberCenterController`    | 登入後的首頁與個人資料編輯功能  |
+
+
+## 1 - 3 資料表
+
+此會員系統，著要圍繞以下四個資料表為功能核心展開
+
+| 資料表名稱                            | 主要用途                             |
+|------------------------------------ |-------------------------------------|
+| `member_center_users`               | 儲存會員的基本帳號資料及登入資訊         |
+| `member_center_guests`              | 記錄訪客註冊時的暫存資料與驗證狀態       |
+| `member_center_password_update`     | 管理忘記密碼流程中的重設請求與驗證       |
+| `member_center_user_contact_update` | 負責會員變更 Email 等敏感資訊的驗證狀態  |
 
 ---
 
-## 🔐 驗證機制與安全架構
-
-本系統採用 **Token-based 驗證設計**，捨棄 Laravel 原生登入機制，改以自訂安全流程，確保各功能模組的驗證邏輯獨立且可重複使用，  
-提升系統安全與維護便利性。
-
-系統採用自訂 Token-based 驗證機制，靈活因應多階段與多類型的認證需求，如註冊、密碼重設與 Email 變更。  
-此設計不僅保持流程清晰與模組獨立，也展現對基礎驗證技術的實作能力與理解，避免直接套用框架預設，提升系統的可維護性與擴展性。
+<br/>
+<br/>
+<br/>
 
 
-### ✅ 主要 Token 類型與使用場景
+# 第二章：架構理念與模組設計
 
-| Token 類型             | 使用場景                          | 儲存位置                             |
-|------------------------|---------------------------------|-------------------------------------|
-| `register_token`       | 註冊流程中 Email 驗證連結           | `member_center_guests`              |
-| `password_token`       | 忘記密碼流程的驗證連結               | `member_center_password_update`     |
-| `update_contact_token` | 會員 Email 變更驗證連結              | `member_center_user_contact_update` |
-| `bearer_token`         | 登入後身份驗證，放在 HTTP Header 中 | `member_center_users`               |
+## 2 - 1 架構介紹
 
-### 🔄 驗證流程與實作方式
+採用 **分層架構** 設計，區分不同層級的職責，主要架構包含以下幾個層級：
 
-- **登入功能**使用自訂 Middleware 來攔截請求，驗證 Bearer Token 的有效性與授權，確保會員專區的安全訪問。
+* ### Controller 層 ：
+    負責接收並處理 HTTP 請求，與前端使用者互動。
 
-- **其他流程（註冊驗證、忘記密碼、Email 變更**為多階段且狀態複雜的 Token 驗證，  
-  **由 Service 層在 Controller 內統一處理**，根據 Token 狀態判斷流程是否允許繼續。
+    本專案中，Controller 僅負責處理來自 Request 的資料、調用 Service 執行業務邏輯，並回傳處理結果，使得 Controller 保持結構簡潔、職責單一。
 
-- 由於這些流程涉及「一次性驗證」、「過期判斷」及「狀態管理」等業務邏輯，使用 Middleware 直接攔截並不合適，  
-  且相關路由多為開放狀態（非登入限制），故採用 Service 層集中處理更為靈活。
+    **✅ 這樣的設計有助於：**
 
-- 此設計使驗證機制在 Controller 與 Service 之間保持一致且可擴充，方便未來新增驗證規則或整合更複雜的權限控管。
+>- 降低程式耦合與重複，Controller 不易肥大  
+>- 未來如果要擴充功能或修改流程，僅需更動 Service 層  
+>- 更容易進行測試、除錯，利於維護與重構
 
----
+* ### Service 層（廣義）：
+    在本專案中，Service 層不僅負責處理來自 Controller 的請求，更擔任業務流程調度與邏輯執行的核心。  
 
-模擬實務開發中對流程嚴謹與系統安全的要求，架構出兼具安全性、模組化與擴展性的系統。
+    為了提升可維護性與擴充性，系統進一步將 Service 層拆分為數個角色，每個角色專責特定邏輯層級，彼此協作完成整體流程：
 
----
+    #### 主 Service 類：
+    - 負責統籌註冊、登入等主要的業務流程
+    - 可視為「流程控制中心」，負責調度各種內部模組
+    - 本身不處理具體操作細節，而是透過調用其他模組來完成任務
 
-# 2️ 註冊模組與認證機制
+       > **📝 設計理念：** 將主流程與單元操作分離，使得全局流程的控制更為清晰，降低維護成本
+    
+    #### UnitService 類：
+    - 專責處理主流程中的單一操作單元，例如帳號是否存在、建立資料等
+    - 通常被特定 Service 所專屬使用，對應各自的業務流程
+    - 功能模組化，便於單元測試與重複使用
 
-## 1. 流程概述
+        > **📝 設計理念：**  
+        > 參考 Delegation（委派）模式，將主流程中的單元操作交給專門負責的模組處理，以達到降低主要 Service 的複雜度，提升維護性為主要目的。
+    
+    #### Orchestrator：
+    - 將「寄送驗證信」這種橫跨多個業務流程（註冊、忘記密碼、信箱更新）的邏輯進行抽象化
+    - 採用樣板方法模式（Template Method Pattern），定義整體流程步驟
+    - 不實作具體細節，而是透過對應的策略物件（Strategy）來完成每一步驟
 
-本系統的會員註冊流程如下：  
-訪客輸入 Email 後，系統會在 `member_center_guests` 資料表中建立訪客暫存資料，並產生 `register_token`，同時寄送包含驗證連結的註冊信。  
-使用者點擊驗證連結後，系統驗證 token 的有效性與狀態，若通過驗證則允許設定密碼，完成後正式建立會員帳號（User），並產生登入用的 `bearer_token`。
+        > **📝 設計理念：** 將重複的流程抽成樣板，避免重寫相同的程式碼，將步驟標準化並提供可測試的組件
+        
+    #### Strategy 類：
+    - 對應不同業務流程，定義具體的驗證信發送邏輯與使用者處理方式
+    - 每個 Strategy 代表一組專屬邏輯，實作樣板中的必要步驟
+    - 與 Orchestrator 搭配，實現流程中的可替換性（Pluggability）
 
-整個流程確保資料的一致性與安全性，並透過 Service Layer 將業務邏輯與 Controller 解耦。
+        > **📝 設計理念：** 配合樣板模式，實踐 Open/Closed Principle，新增流程僅需實作 Strategy 即可 
 
----
+    **✅ 這樣的分層設計有助於：**
 
-## 2. Controller 與 Service 職責劃分
+>- 主要流程與細節操作的邏輯分離，架構清晰，模組權責分明
+>- 重複邏輯抽象化，減少冗餘，讓步驟標準化
+>- 參考策略與樣板模式，讓流程的彈性增加並提升系統的擴展能力
+>- 模組化使得測試更加容易
 
-| 元件                     | 角色與職責                                  | 主要方法                                  |
-|--------------------------|-----------------------------------|-----------------------------------------------|
-| `MemberRegisterController` | 負責處理 HTTP 請求，控制流程的進行  | `registerRun()`, `setPassword()`, `createMember()` |
-| `MemberRegisterService`  | 專注於註冊相關的商業邏輯：驗證輸入、寄送信件、建立會員資料 | `isRequestValid()`, `prepareVerification()`, `authorizeSetPasswordAccess()`, `createMember()` |
 
----
+* ### Repository 層：
+    Repository 層負責與資料庫進行直接互動，封裝對資料的操作，避免 Controller 和 Service 直接使用 ORM。  
+    透過定義介面（Interface）與 Eloquent 實作，減少重複的程式碼並提升測試能力，區分資料存取與業務流程的界線。
 
-## 3. 主要程式碼片段說明
+    本專案採用 Repository Pattern，實作 BaseEloquentRepository，將共通的資料操作方法放入其中，  
+    並針對特定資料模型實作專屬的 Repository，負責該模型特有的查詢與操作。
 
-### 註冊請求驗證與寄送驗證信
+    **✅ 這樣的設計有助於：**
+
+>- 封裝資料存取，避免重複的程式碼
+>- 提供統一介面，方便未來切換資料來源或進行單元測試
+>- 將業務流程中有關資料層複雜操作模組化
+
+
+* ### Middleware（MemberCenterPathMiddleware）：
+    MemberCenterPathMiddleware 是系統中唯一的存取控制中介層，負責保護會員中心相關的路由，防止未登入或未驗證的使用者直接存取。  
+
+    它內建一組「白名單機制」，允許像是登入頁、信箱更新流程等特定路由跳過驗證檢查。  
+
+    對於其他路由，Middleware 會從 Cookie 中讀取 Bearer Token，並引入 `MemberAuthService` 檢查是否有效。若驗證通過，則會將對應的 `User` 實例設入請求中，以便後續 Controller 取得當前登入使用者。
+
+    <br/>
+
+    #### Middleware 流程圖 
+    
+    ``` 
+        使用者發出 Request
+            │
+            ▼
+        [是否為白名單路由？]
+            │
+            ├─ 是 ─> [進入 Controller]
+            └─ 否 ─> [是否有 Token？]
+                        │
+                        ├─ 否 ─> [導向登入頁，提示請先登入]
+                        └─ 是 ─> [呼叫 MemberAuthService 驗證 Token]
+                                            │
+                                            ├─ 驗證成功 ─> [在 Request 中注入 user，放行]
+                                            └─ 驗證失敗 ─> [導向登入頁，提示請先登入]
+    ```
+
+    <br/>
+
+    **✅ 這樣的設計有助於：**
+    
+>- 透過白名單機制保持流程靈活，提升使用者體驗
+>- 確保會員中心只被已驗證使用者存取，提升安全性
+>- 將驗證集中在 Middleware，簡化 Controller 
+
+<br/>
+
+* ### 架構圖 
+                                                                   
+    ```
+                              +-----------+
+                              |  Request  |
+                              +-----------+
+                                    |
+                                    ▼
+                            +----------------+
+                            |   Middleware   |
+                            +----------------+
+                                    |
+                                    ▼
+                            +----------------+
+                            |   Controller   |
+                            +----------------+
+                                    |
+                                    ▼
+         +------------------------------------------------------+ 
+         |  +------------+        Service Layer                 |
+         |  |   Service  |                                      |
+         |  +------------+    +--------------+    +----------+  | 
+         |        ├─────────> | Orchestrator | ─> | Stratgey |  |  
+         |        |           +--------------+    +----------+  | 
+         |        |                                             | 
+         |        |           +--------------+                  | 
+         |        └─────────> | Unit Service |                  |
+         |                    +--------------+                  |
+         +------------------------------------------------------+
+
+                                    |
+                                    ▼
+                            +----------------+
+                            |   Repository   |
+                            +----------------+
+                                    |
+                                    ▼
+                            +----------------+
+                            |    Database    |
+                            +----------------+
+
+    ``` 
+
+## 2 - 2 模組劃分與功能界定
+
+本系統依據使用者操作流程，將功能切分為數個獨立模組，分別負責註冊、登入、會員中心資料維護、忘記密碼與聯絡資訊更新等職責。
+每個模組均遵循「單一職責原則」，透過 Service 層協調流程和驗證邏輯，維持良好的模組邊界與維護性。
+
+系統主要有五個核心功能，每個功能再依分層架構，進一步細分相關元件。  
+以下為各功能所使用的 Controller、Service、UnitService 及 Strategy/Orchestrator 等元件對應表：
+
+| 功能   | Controller | 主 Service | UnitService | Strategy / Orchestrator  |
+|---------|-------------------------|------------------------|--------------------------|---------------------------------|
+| 會員註冊 | MemberRegisterController | MemberRegisterService | UnitRegisterService       | RegisterVerificationStrategy, VerificationEmailOrchestrator  |
+| 忘記密碼 | ForgotPasswordController | ForgotPasswordService | UnitForgotPasswordService | ForgotPasswordVerificationStrategy, VerificationEmailOrchestrator  |
+| 變更通訊 | UpdateContactController | UpdateContactService   | UnitUpdateContactService  | UpdateContactVerificationStrategy, VerificationEmailOrchestrator  |
+| 會員登入 | MemberLoginController | MemberLoginService | UnitLoginService | —                                  |
+| 會員中心 | MemberCenterController| MemberEditService  | —                | —                                  |
+
+<br/>
+
+**備註**：  
+- 忘記密碼、註冊、變更通訊等流程共用 `VerificationEmailOrchestrator` 進行郵件驗證流程的調度。  
+- 登入及會員中心編輯功能流程相對簡單，不涉及多步驟驗證或跨模組協作，因此無需使用 Orchestrator 與 Strategy 模式。  
+
+<br/>
+<br/>
+
+本系統的五個主要功能以及主要操作的資料表如下：
+
+| 功能名稱      | 功能描述                                             | 資料表（主要操作）     |
+|--------------|--------------------------------------------------- |---------------------|
+| 會員註冊      | 提供使用者註冊帳號、驗證信箱、建立帳號資料等流程。          | `member_center_guests`             |
+| 會員登入      | 提供使用者透過帳號密碼登入系統，取得會員專屬操作權限。       | `member_center_users`              |
+| 會員中心      | 允許會員檢視並修改個人資料（如性別、電話、地址等）。        | `member_center_users`               |
+| 忘記密碼      | 讓使用者在忘記密碼時，透過信箱驗證重新設定新密碼。          | `member_center_password_update`     |
+| 聯絡資訊更新   | 提供會員變更信箱，並重新驗證新資料的正確性。              | `member_center_user_contact_update` |
+
+<br/>
+<br/>
+
+其中「聯絡資訊更新」功能，除了驗證信箱、變更郵件地址之外，也實作了輪詢機制 (Polling)，讓前端網頁可以即時的動態更新，  
+讓使用者可以有良好的用戶體驗。
+
+以下提供輪詢機制的基本資料：
+
+| 功能名稱 | 功能描述 | Controller | Service | 資料表（主要操作） |
+|--------|---------|------------|---------|------------------|
+| 狀態輪詢 | 前端透過定時請求得到通訊更新的驗證狀態 | PollingStatusController | PollingStatusService | `user_contact_updates` |
+
+<br/>
+<br/>
+
+以上模組與元件分工，確保了各功能的單一責任與良好維護性。各功能在系統架構中具明確定位，  
+並透過共用元件（如郵件調度與狀態輪詢服務）保持高內聚、低耦合的模組互動，為後續擴充提供良好基礎。
+
+
+<br/>
+
+## 2 - 3 設計動機與理念
+在早期設計中，主要服務層（Service）程式碼過於龐大，混雜了多種職責。為了提高程式碼的品質，讓之後的維護成本降低，設計動機主要來自以下幾個考量：
+
+* ### 精簡 Service
+    * **拆分核心流程與單元操作：** 這些 Service 不僅處理主要業務流程，也包含了許多單元功能，如資料格式驗證、欄位更新等。因此，參考了委派模式（Delegation Pattern），將這些單元操作獨立出來，交由 UnitService 處理。這麼做讓主要服務層可以專注於協調業務流程，而不會因過多的細節而變得臃腫。
+
+    * **封裝資料庫操作：** 為了將服務層與資料層解耦，減少程式碼複雜度，運用了 Repository 模式，將對資料庫的操作封裝起來，讓服務層無需直接處理資料庫的細節。
+
+* ### 消除重複程式碼
+    * **提取共通流程：** 在精簡服務層的過程中，發現「會員註冊」、「忘記密碼」和「聯絡資訊更新」等功能，都包含了「發送驗證信」這個高度相似的步驟。為了避免重複實作，我們決定將此共通流程獨立出來。
+
+    * **模組化設計：** 為了解決這個問題，我們參考了樣板方法模式（Template Method Pattern），建立一個流程協調器（VerificationEmailOrchestrator）來封裝共通的步驟。接著，運用**策略模式（Strategy Pattern）**的概念，針對不同的功能，實作各自的策略元件（Strategy），讓流程能被替換，同時也保證了功能的獨立性
+
+<br/>
+<br/>
+
+### 採用策略模式的模組與元件
+
+以下列出系統中採用此設計的模組與其所對應的策略與封裝元件：
+
+| 功能 | 封裝流程協調器 | 策略元件 |
+| ------ | ------------------------------- | ------------------------------- |
+| 會員註冊   | `VerificationEmailOrchestrator` | `RegisterVerificationStrategy`       |
+| 忘記密碼   | `VerificationEmailOrchestrator` | `ForgotPasswordVerificationStrategy` |
+| 聯絡資訊更新 | `VerificationEmailOrchestrator` | `UpdateContactVerificationStrategy`  |
+
+這些功能皆包含「檢查請求」 → 「更新並創建紀錄」  → 「準備寄信資料」→ 「寄信」等共通步驟，  
+透過策略與流程協調器拆分出可重用模組，避免撰寫重複流程。
+
+### 登入與會員中心未使用策略封裝的原因
+與上述功能相比，「會員登入」與「會員中心資料維護」的流程較為單一，和其他功能的流程相比，並沒有共通性，  
+僅需進行帳密驗證或資料更新，並無驗證信或多階段流程的需求，故採取簡化實作，直接在 Service 或透過 UnitService 處理即可。
+
+<br/>
+
+## 2 - 4 核心服務元件與職責
+
+在分層架構中，有兩個服務元件扮演著關鍵角色：ServiceRegistry 和 MemberAuthService。它們不僅是業務邏輯的執行者，更是實現低耦合與高擴展性的核心設計。
+
+### ServiceRegistry：服務的中央管理員
+
+ServiceRegistry 扮演著中央註冊表的角色，負責管理並提供系統中所有核心服務的實例。它的主要職責並非執行業務邏輯，而是協調不同服務之間的依賴關係。透過依賴注入（Dependency Injection）的方式，ServiceRegistry 將所需的服務實例傳遞給其他需要它的類別。
+
+這種設計完美地實踐了依賴反轉原則（Dependency Inversion Principle）。例如，UnitRegisterService 不需自己去實例化 MemberAuthService，而是透過 ServiceRegistry 獲取。如此一來，UnitRegisterService 只需知道 ServiceRegistry 這個抽象管理員，而不需要關心 MemberAuthService 的具體實作細節。這使得服務層的程式碼更乾淨、更易於維護和測試。
 
 ```php
-    public function registerRun(Request $request)
+    class UnitRegisterService extends AbstractUnitService
     {
-        MemberRegisterService::isRequestValid($request->post("account"));
-        MemberRegisterService::prepareVerification($request->post("account"));
-
-        return response()->json([
-            'code' => 200,
-            'message' => '驗證信已寄出，請前往信箱完成開通流程'
-        ]);
-    }
-```
-
-- isRequestValid()：檢查 Email 格式是否正確，且該帳號尚未被註冊。
-- prepareVerification()：建立訪客資料（Guest）與對應的註冊 token，並寄出驗證信。
-
-### 密碼設定頁面授權
-
-```php
-    public function setPassword(Request $request)
-    {
-        $email = $request->route('email');
-        $token = $request->route('token');
-
-        MemberRegisterService::authorizeSetPasswordAccess($email, $token);
-
-        return view('set_password', compact('email'));
-    }
-```
-
-- 透過 authorizeSetPasswordAccess() 驗證 token 是否有效且對應正確的 Email，防止非法存取。
-
-### 建立正式會員帳號
-
-```php
-    public function createMember(Request $request)
-    {
-        MemberRegisterService::validateSetRequest($request->email, $request->password, $request->password_confirmed);
-
-        $user = MemberRegisterService::createMember($request->email, $request->password);
-        $cookie = MemberAuthService::setBearerTokenCookie($user->bearer_token, 2880);
-
-        return redirect()->route('set_account')->cookie($cookie);
-    }
-```
-## 4. Token 狀態管理
-
-為確保註冊驗證流程的安全性與一致性，系統設計 `register_token` 的狀態管理機制，並儲存在 `member_center_guests` 資料表中。
-
-每筆 token 都擁有獨立的過期時間與狀態欄位，避免重複驗證或非法操作，有效提升系統的資料完整性與操作安全。
-
-### 🔐 Token 狀態類型
-
-| 狀態         | 說明                                                |
-|--------------|-----------------------------------------------------|
-| `pending`    | 初始狀態，表示驗證信已寄出，等待使用者驗證         |
-| `completed`  | 使用者已成功驗證，流程結束                         |
-| `expired`    | Token 已超過設定期限，自動失效                     |
-| `cancel`     | 同一帳號重複申請註冊時，會取消先前未完成的 token   |
-
-### 🚀 驗證安全邏輯說明
-
-每筆 Token 都有時效性與狀態限制，系統在驗證時將執行以下檢查流程：
-
-#### ✅ 驗證時，系統會檢查：
-  -  Token 是否存在
-  -  是否超過有效期限（已過期則視為無效）
-  -  狀態是否為 pending（避免重複使用或已被撤銷）
-  -  是否對應正確的 Email（防止任意拼湊 URL 存取）
-
-#### 🔒 驗證結果處理：
-- **驗證成功後 →** 狀態更新為 completed，禁止再次使用
-- **驗證失敗 →** 拋出例外，引導使用者重新申請流程
-
-#### 💡 擴充應用說明：
-此驗證機制確保 **每次驗證連結皆為一次性使用** ，
-有效防止過期、重複請求與非法操作，也為其他模組（如「忘記密碼」、「變更 Email」）
-提供一致且可擴充的驗證邏輯參考。
-
----
-
-# 3️ 會員中心與登入模組
-
-## 1. 模組概述
-
-會員中心模組提供登入驗證與個人資料管理功能，採用自訂 Bearer Token 驗證機制，確保登入身份的安全性，並透過 Service 層清楚劃分登入、編輯與登出等職責。
-
-登入後的使用者可瀏覽首頁、設定暱稱、性別、年齡層等資料，並可進一步操作變更 Email 等敏感動作。
-
----
-
-## 2. Controller 與 Service 職責對照
-
-| 元件                      | 主要角色與職責                           | 代表方法                              |
-|---------------------------|---------------------------------------|----------------------------------------|
-| `MemberCenterController`  | 處理登入請求、顯示頁面與會員資料編輯     | 登入流程、首頁載入、資料編輯、登出        |
-| `MemberLoginService`      | 驗證帳密、產生登入 token、登出清除 token | 驗證登入請求、設定登入狀態、登出           |
-| `MemberEditService`       | 驗證與更新會員資料（暱稱、聯絡方式等）   | 請求驗證、更新會員資料                    |
-
----
-
-## 3. 登入流程與驗證機制
-
-登入時，系統會驗證帳號與密碼格式，支援 Email 或手機號碼登入。  
-驗證成功後，系統產生 Bearer Token，並寫入資料庫與 HTTP Cookie，作為後續認證依據。
-
-```php
-    public function loginRun(Request $request)
-    {
-        $user = MemberLoginService::verifyLoginRequest($request);
-        if (!$user) {
-            return response()->json(['code' => '401', 'message' => '帳號或密碼錯誤']);
+        // ...
+        public function __construct(
+            ServiceRegistry $services,
+            EloquentGuestRepository $guestRepository
+        )
+        {
+            parent::__construct($services);
+            $this->guestRepository = $guestRepository;
         }
+        // ...
+    }    
+```
 
-        $user = MemberLoginService::setLogin($user);
-        $cookie = MemberAuthService::setBearerTokenCookie($user->bearer_token, 2880);
+### MemberAuthService：身分驗證的核心
 
-        return response()->json(['code' => '200', 'message' => '登入成功'])->cookie($cookie);
+MemberAuthService 是 Token 驗證機制的核心。這個服務的職責非常專一：管理 Token 的生成、驗證與處理流程。為了實現高度彈性，它結合了樣板方法模式與策略模式。
+
+- 樣板模式： MemberAuthService::verifyToken() 方法定義了一個固定的驗證流程骨架，確保所有 Token 的驗證步驟都一致
+- 策略模式： 這個固定流程中的可變部分，例如「檢查 Token 是否過期」或「處理過期後的邏輯」，則被委託給不同的策略類別（TokenStrategy）來完成。
+
+這種設計使得 MemberAuthService 本身不帶有任何具體的業務邏輯，它只負責協調。當需要新增一個 Token 類型時，只需要建立一個新的策略，並在 TokenStrategyRegistry 中註冊即可，完全不需要修改 MemberAuthService 的核心程式碼，體現了開閉原則（Open/Closed Principle）。
+
+<br/>
+<br/>
+<br/>
+
+# 第三章：抽象流程的實作與應用
+
+## 3 - 1 核心模式：調控器（Orchestrator）與策略（Strategy）
+
+在第二章我們提到，為了抽象化共通的業務流程並提高靈活性，採用了 Orchestrator 結合 Strategy 的設計模式。本章將探討這個核心模式的實作細節，揭示如何將抽象理念轉化為可維護、可擴展的實際程式碼。
+
+<br/>
+
+### 調控器（Orchestrator）：流程的骨架
+
+VerificationEmailOrchestrator 這個模組扮演著「流程調度者」的角色，定義了「發送驗證信」這個流程的固定步驟。  
+
+其中以 dispatchVerification() 作為此模組的公開介面，運用了類似工廠模式 (Factory Pattern)的概念，會依據傳入參數（方法名稱），選擇對應的 Strategy，並執行 verificationFlow()。
+
+```php
+    public function dispatchVerification(string $type, Request $request): void
+    {
+        $strategy = match ($type) {
+            'register' => $this->registerStrategy,
+            'forgot_password' => $this->passwordStrategy,
+            'update_contact' => $this->contactStrategy,
+        };
+
+        $this->verificationFlow($strategy, $request);
     }
 ```
 
----
+而 verificationFlow() 就是這個流程的樣板。它內部定義了固定的呼叫順序：
 
-## 4. Bearer Token 認證邏輯
-
-登入成功後，系統會產生並更新 Bearer Token 及其過期時間，確保用戶身份驗證的安全。  
-所有登入後的路由都會透過 Middleware 驗證此 Token 的有效性與狀態。
+* #### 驗證並準備請求 (validateAndPrepareRequest)
+* #### 更新並創建紀錄 (createAndUpdateRecord)
+* #### 準備連結資訊 (getLinkInfo)
+* #### 發送驗證信 (dispatchVerificationEmail)
 
 ```php
-    try 
+    private function verificationFlow(
+        VerificationStrategyInterface $strategy, Request $request
+    ): void
     {
-        $token = $request->cookie('bearer_token');
-        if (!$token) {
-            return redirect()->route('login')->with('error', '請先登入');
-        }
+        $data = $strategy->validateAndPrepareRequest($request);
+        $record = $strategy->createAndUpdateRecord($data);
+        $linkInfo = $strategy->getLinkInfo($record);
 
-        $user = MemberAuthService::validateUserLogin($token);
-        if (!$user) {
-            return redirect()->route('login')->with('error', '登入狀態已過期，請重新登入');
-        }
+        $verificationLink = $this->memberEmailService->generateLink(
+            $linkInfo['routeName'],
+            $linkInfo['params']
+        );
 
-        $request->attributes->set('user', $user);
-        return $next($request);
-
-    } catch (Exception $e) 
-    {
-        return redirect()->route('login')->with('error', $e->getMessage());
+        $strategy->dispatchVerificationEmail($record, $verificationLink);
     }
 ```
-這段程式碼是 Middleware 內負責認證的部分
 
----
+Orchestrator 的核心在於它只定義流程的骨架，不實作任何步驟的具體細節。所有變動的邏輯都透過依賴注入的方式，  
+委派給遵循 VerificationStrategyInterface 介面的策略物件來完成。
 
-## 5. 資料編輯流程與驗證
+<br/>
 
-會員可在登入後編輯個人資料，包括暱稱、性別、地址、手機等資訊。  
-系統會驗證 Email 是否有效且已完成驗證，並確認手機與地址格式正確，暱稱不得為空。  
-資料更新過程使用 Transaction 保證資料一致性與安全。
+### 策略（Strategy）：可替換的具體實作
 
----
+VerificationStrategyInterface 是這個模式的靈魂，它定義了 Orchestrator 所需的四個方法。每個具體的策略類別，例如 RegisterVerificationStrategy、ForgotPasswordVerificationStrategy 和 UpdateContactVerificationStrategy，都必須實作這個介面。  
 
-## 6. 登出流程
+這確保了無論是哪種流程，Orchestrator 都能以一致的方式來呼叫它們。從程式碼中，可以清楚看到每個策略如何實現自己的專屬的業務流程：
 
-登出時，系統會清除資料庫中的 Bearer Token 與過期時間，並回傳清除 Cookie，確保用戶登出狀態完整。
+* #### validateAndPrepareRequest():  
+    `RegisterVerificationStrategy` 會檢查信箱是否已經被註冊，而 `UpdateContactVerificationStrategy`
+    則注重於，更新的電子郵件是否有效、與目前的信箱是否相同等專屬判斷。
 
----
+* #### createAndUpdateRecord():
+    `RegisterVerificationStrategy` 則負責處理 `member_center_guests` 資料表；而`UpdateContactVerificationStrategy` 則負責處理 `member_center_user_update_contact` 資料表。
 
-此模組採用身份驗證與服務分層設計，實現可擴展與能維護的會員中心功能。  
-登入、編輯與登出程式碼獨立分離，便於未來功能擴充與維護。
+* #### 註冊流程的驗證邏輯
+    ``` php
+        public function validateAndPrepareRequest(Request $request): mixed
+        {   
+            $email = $request->input('account') ?? throw new Exception('請輸入帳號');
 
----
+            $this->services->validationService->validateEmail($email);
 
-# 4️ 聯絡資訊變更與輪詢模組
-
-## 1. 模組概述
-
-聯絡資訊變更模組負責處理會員的 Email（未來可擴充手機號碼）更新流程，包含：
-
-- 發起變更請求與驗證
-- 寄送驗證信
-- 使用驗證連結完成更新
-- 取消變更請求
-- 輪詢變更狀態以回饋前端
-
-此模組強調資料一致性與安全性，避免重複或錯誤操作，並支援中斷與恢復流程。
-
----
-
-## 2. Controller 與 Service 職責對照
-
-| 元件                    | 主要角色與職責                             | 代表方法                         |
-|-------------------------|-----------------------------------------|----------------------------------|
-| `UpdateContactController` | 處理變更 Email 請求、載入驗證頁面與確認頁面 | `updateEmail()`, `updateContact()`, `updateConfirm()`, `cancelConfirm()`, `completeConfirm()` |
-| `ContactUpdateService`   | 驗證請求有效性、建立變更請求、寄送驗證信、驗證 Token、完成與取消變更流程 | `isRequestValid()`, `prepareUpdateForEmail()`, `authorizeUpdateContactAccess()`, `finishConfirm()`, `cancelRequest()` |
-| `PollingStatusController` | 輪詢前端查詢變更狀態                     | `checkContactUpdateStatus()`    |
-| `PollingStatusService`   | 驗證輪詢請求，查詢並回傳變更狀態           | `isRequestValid()`, `checkUpdateStatus()` |
-
----
-
-## 3. 變更流程說明
-
-### 3.1 申請變更
-
-使用者登入後，透過 `updateEmail()` 發起 Email 變更申請。  
-系統驗證請求有效性，檢查新 Email 格式、是否與現有相同或已被使用，若通過則建立變更請求紀錄，並寄出包含驗證連結的信件。
-
-### 3.2 驗證連結存取
-
-使用者點擊驗證信中的連結，進入 `updateContact()` 頁面。  
-系統驗證 Token 與 Email 是否匹配、是否有效，並回傳對應變更資料，供使用者確認。
-
-### 3.3 確認或取消變更
-
-使用者可選擇確認 (`updateConfirm()`) 或取消 (`cancelConfirm()`) 變更。  
-確認後，系統會更新會員資料，並標記變更完成狀態。  
-取消則將變更狀態改為取消，並通知使用者。
-
-### 3.4 完成變更
-
-完成後跳轉至 `completeConfirm()` 頁面，提示使用者變更成功並建議重新登入。
-
----
-
-## 4. 輪詢變更狀態
-
-前端可透過 `PollingStatusController::checkContactUpdateStatus()` 進行輪詢，查詢變更請求的最新狀態。  
-輪詢服務會驗證身份，查詢對應變更紀錄，判斷是否已完成變更，並回傳狀態與結果。
-
----
-
-## 5. 重要安全機制
-
-- 所有驗證 Token 皆有過期時間，超時自動標記為過期，防止惡意或過期使用。
-- 變更請求建立時，若同一用戶已有待處理請求，會自動取消先前請求，避免重複變更導致狀態錯亂。
-- Token 與 Email、使用者 ID 必須完全匹配，防止跨帳號操作。
-- 變更流程皆使用資料庫交易（Transaction）確保資料一致性。
-- 變更成功後，相關狀態與驗證時間更新，避免重複操作。
-
----
-
-## 6. 使用的資料表與模型
-
-| 模型                 | 對應資料表                       | 功能說明               |
-|----------------------|---------------------------------|------------------------|
-| `User`               | `member_center_users`            | 正式會員資料           |
-| `UserContactUpdate`   | `member_center_contact_updates` | 聯絡資訊變更請求紀錄   |
-
----
-
-## 7. 範例程式碼片段
-
-```php
-    // 發起 Email 變更申請
-    public function updateEmail(Request $request)
-    {
-        try {
-            $contactType = ContactUpdateService::isRequestValid($request);
-            if ($contactType === 'email') {
-                ContactUpdateService::prepareUpdateForEmail($request);
-            } else {
-                throw new Exception("功能尚未開通");
+            if ($this->services->userRepository->findAccount($email)) {
+                throw new Exception('此信箱已被註冊，請直接登入');
             }
-            return response()->json(['code' => 200, 'message' => 'success']);
-        } catch (Exception $e) {
-            return response()->json(['code' => 400, 'message' => $e->getMessage()]);
+
+            return ['email' => $email];
         }
-    }
+    ```
+
+
+* #### 聯絡資訊更新的驗證邏輯
+    ``` php
+        public function validateAndPrepareRequest(Request $request): mixed
+        {
+            $user = $request->attributes->get('user') ?? throw new Exception("請重新登入");
+            $contactType = $this->services->validationService->checkContactType($request);
+
+            $newContact = $request->$contactType;
+            $currentContact = $user->$contactType;
+
+            $this->ensureContactValid($newContact, $currentContact, $contactType);
+            return [
+                'user'         => $user, 
+                'new_contact'  => $newContact , 
+                'contact_type' => $contactType
+            ];
+        }
+    ```
+
+<br/>
+<br/>
+
+### 這種設計實現了「職責分離」：
+
+* **Orchestrator**: 專注於協調流程
+* **Strategy**: 專注於處理特定功能的邏輯
+
+當需要新增一個需要驗證信的新功能時，我們只需建立一個新的 NewFeatureVerificationStrategy 並實作 Interface，  
+然後在 VerificationEmailOrchestrator::dispatchVerification() 新增方法，就可以直接使用，此設計確保系統可以輕鬆擴展相關功能。
+
+
+## 3 - 2 非封裝流程的簡化設計考量
+
+雖然 `Orchestrator` + `Strategy` 模式為複雜流程提供了高度的彈性與可維護性，但在某些流程中，過度抽象反而會增加不必要的複雜度。因此，對於流程較為單純的功能，採取了更簡化的實作方式。
+
+### 驗證流程的精簡化
+
+在在初期設計中，曾試圖將整個註冊、忘記密碼等流程（包含「寄送驗證信」、「進入授權頁面」、「完成最終程序」）全部封裝進 Orchestrator。
+
+然而，卻發現這樣做只是將原本 Service 層的程式碼轉移到 Strategy 中，並沒有真正減輕程式碼的複雜度，反而增加了不必要的抽象層級。
+
+經過權衡後，最終決定只將「寄送驗證信」這個高度相似的流程抽象出來。這個決策的核心考量在於：
+
+* **流程差異性：** 雖然「寄送驗證信」是共通的，但「進入授權頁面」和「完成最終程序」這兩個步驟的邏輯在不同功能間差異很大。例如，註冊的最終程序是建立正式會員，而忘記密碼的最終程序是更新密碼。
+
+* **避免過度設計：** 若強行將這些差異性大的流程也封裝進 Orchestrator，將導致 Strategy 變得臃腫且難以維護，違背了設計的初衷。
+
+因此，Orchestrator 只負責處理共通且可替換的「寄送驗證信」流程。而「進入授權頁面」與「完成最終程序」等獨特的業務邏輯，則由各別的 Service 負責，並將單元操作委派給 UnitService，維持了架構的彈性與簡潔。
+
+### 登入與會員中心
+
+「會員登入」與「會員中心資料維護」這兩個功能，因其業務邏輯相對單一，並沒有被納入策略模式的封裝中。
+
+* **會員登入：** 主要流程只包含 「帳號密碼驗證」 和 「產生 Token」 兩個核心步驟。這個流程不涉及多階段的外部驗證（如電子郵件），且步驟固定，因此直接在 MemberLoginService 中處理，並將單元操作委派給 UnitLoginService 即可。
+
+* **會員中心：** 功能僅限於更新個人基本資料（如姓名、電話）。這個流程不具備可替換的步驟，也不與其他模組共用邏輯，所以直接由 MemberEditService 處理，無需使用 Orchestrator 進行流程協調。
+
+<br/>
+<br/>
+<br/>
+
+# 第四章：資料模型與資料層的抽象設計
+
+本章將詳細介紹本專案的資料模型（Model）與資料庫存取層（Repository）的設計哲學。    
+
+為了解決傳統 MVC 架構中 Model 職責不清的問題，並實現業務邏輯與資料持久化的徹底分離，我們採用了分層抽象（abstract class）與介面導向（interface）的設計模式。
+
+<br/>
+
+## 4 - 1 資料模型（Model）的分層抽象
+
+此專案使用的 Model 不僅僅是資料庫資料表的映射，更是具備方法的物件（object）。為了讓這些方法有共通標準，使程式碼能重複使用，因此將 Model 設計成兩個層次。
+
+### 介面定義（ Interface ）：行為的合約
+
+* **TokenCapableInterface:** 這個介面定義了所有帶有 Token 的 Model 必須具備的最基礎合約。例如，取得 Token 欄位名稱、獲取 Token 過期時間等方法。這確保了所有 Token Model 都遵循同一套公開的規則。
+
+* **TokenStatusInterface:** 此介面繼承自 **TokenCapableInterface**，並擴充了與狀態管理相關的合約，例如透過 proceedTo() 方法來處理狀態轉換。這讓介面設計更具針對性，符合介面隔離原則（Interface Segregation Principle）。
+
+### 抽象類別（ Abstract Class ）：共通實作的基石
+
+* **BaseTokenModel:** 此 Abstract Class 實作了 TokenCapableInterface，封裝了 Token Model 通用的方法。包含 Eloquent Scope，以及對 Token 欄位操作的方法。所有不具備 status 的 Token Model（例如 User）都直接繼承此類別，獲得這些功能。
+
+* **AbstractTokenModel:** 此 Abstract Class 繼承自 **BaseTokenModel**，並實作了 TokenStatusInterface。主要處理帶有 status 的 Token Model。例如 status 轉換的通用操作，避免在這些 Model 重複撰寫相同的程式碼。
+
+<br/>
+
+透過這樣的抽象設計， Model 的結構清晰且易於擴展。如果未來新增一種不帶狀態的 Token Model，只需繼承 BaseTokenModel 即可；若需帶有 status，則繼承 AbstractTokenModel。
+
+<br/>
+
+## 4 - 2 資料庫存取層（Repository）的分層抽象
+
+Repository 層作為 Service 層與 Model 層之間的唯一橋樑，其核心職責是封裝所有資料存取細節。我們同樣採用了分層抽象，確保 Repository 的職責單一，且讓程式碼可以重複使用。
+
+### 介面定義（ Interface ）：資料存取的合約
+
+* **BaseTokenRepositoryInterface:** 此 Interface 定義了最基礎的 CRUD 操作，如 create()、save() 和 delete()。它定義了 Repository 的共通合約，使 Service 層只需認識介面合約（Interface Contract），無需關注具體實作細節。
+
+* **StatusTokenRepositoryInterface:** 此介面繼承自 **BaseTokenRepositoryInterface**，並新增了與狀態相關的查詢方法，例如 markStatus()，使介面更專注於 status 變更的責任，契合介面隔離原則的設計精神。
+
+
+### 抽象類別（ Abstract Class ）：封裝 Eloquent 實作
+
+* **BaseEloquentRepository:** 此抽象類別實作了 BaseTokenRepositoryInterface，並封裝了所有 Repository 的共通 Eloquent 實作細節。所有具體 Repository 都繼承此類別。
+
+* **AbstractEloquentRepository:** 此類別繼承自 **BaseEloquentRepository** 並實作 StatusTokenRepositoryInterface，專門處理帶有 status 的 Repository 共通邏輯。它封裝了例如 cancelPending() 這樣的高階操作，避免了在多個子類中撰寫重複的程式碼。
+
+<br/>
+
+透過此設計，Service 層完全不必關心底層是用何種 ORM 進行資料存取。如果未來要更換資料庫技術，只需修改 Repository 內部的實作，而無需變動任何一個 Service 內的業務邏輯。這種解耦設計呈現依賴反轉原則（Dependency Inversion Principle）的精神，提高了專案的擴充彈性並讓後續的維護的更加便利。
+
+<br/>
+
+## 4 - 3 Model 和 Repository 相關圖表 
+
+<br/>
+
+### Model 繼承與介面實作總覽
+
+| Model 類別  | 抽象類別（Absteact Class） | 介面實作 (Interface)|
+| :---                    | :---                  | :---                     |
+| **`User`**              |  `BaseTokenModel`     |  `TokenCapableInterface` |
+| **`Guest`**             |  `AbstractTokenModel` |  `TokenStatusInterface`  |
+| **`PasswordUpdate`**    |  `AbstractTokenModel` |  `TokenStatusInterface`  |
+| **`UserContactUpdate`** |  `AbstractTokenModel` |  `TokenStatusInterface`  |
+
+<br/>
+
+### Repository 繼承與介面實作總覽
+
+| Repository 類別  | 抽象類別（Absteact Class）| 介面實作 (Interface) |
+| :---                                   | :---                          | :---                             |
+| **`EloquentUserRepository`**           |  `BaseEloquentRepository`     |  `BaseTokenRepositoryInterface`  |
+| **`EloquentGuestRepository`**          |  `AbstractEloquentRepository` | `StatusTokenRepositoryInterface` |
+| **`EloquentPasswordUpdateRepository`** |  `AbstractEloquentRepository` | `StatusTokenRepositoryInterface` |
+| **`EloquentContactUpdateRepository`**  |  `AbstractEloquentRepository` | `StatusTokenRepositoryInterface` |
+
+<br/>
+
+### 繼承關係圖       
+
+```             
+      TokenCapableInterface  <──── extends ───────  TokenStatusInterface 
+                ▲                                           ▲
+                |                                           | 
+    implements  |                                           | implements 
+                |                                           |                                              
+          BaseTokenModel  <─────── extends ───────   AbstractTokenModel
+
+      BaseEloquentRepository <──── extends ────── AbstractEloquentRepository
+                |                                           |
+    implements  |                                           | implements
+                |                                           |
+                ▼                                           ▼
+   BaseTokenRepositoryInterface <─ extends ───  StatusTokenRepositoryInterface
 ```
 
-此章節完整涵蓋聯絡資訊變更模組的設計理念、流程與安全考量，能清楚表達系統對敏感資料變更的嚴謹管理與用戶體驗。
+<br/>
+<br/>
+<br/>
 
----
+# 第五章：驗證機制與策略模式的應用
 
-# 5️ 忘記密碼與重設密碼模組
+本章將詳細介紹本專案的 Token 驗證機制，這不僅是身分驗證的核心，也實現無狀態（Stateless）、可擴展、安全性的關鍵。設計時參考了樣板方法模式（Template Method Pattern）與策略模式（Strategy Pattern），讓不同類型的 Token（如註冊、登入）能以各自獨立的單元操作進行處理，同時保持程式碼的整潔與一致性。
+
+<br/>
+
+## 5 - 1 Token 驗證機制的核心設計理念
+
+此系統的 Token 驗證機制採用 Stateless 設計，伺服器不需儲存任何 Session 資訊。當使用者帶著 Token 發來請求時，伺服器只負責驗證 Token 本身的有效性，這讓系統更容易擴充其他功能。
+
+設計時將 Token 驗證的流程抽象化為以下幾個步驟，並用程式碼來實現：
+
+- **Token 的生成：** 為不同的業務流程，生成各自的 Token。
+- **Token 的驗證：** 檢查 Token 是否有效，並判斷是否過期。
+- **Token 的處理：** 根據 Token 的驗證結果，執行對應的操作，例如清除過期的 Token 或刷新登入狀態。
+
+<br/>
 
 
-## 1. 模組概述
+## 5 - 2 策略模式與樣板方法模式的實現
 
-忘記密碼模組提供會員重置密碼的完整流程，包括：
+為了實現高彈性、低耦合的驗證機制，結合了兩種設計模式：樣板方法模式和策略模式。  
 
-- 驗證帳號有效性（Email）
-- 建立並管理密碼重置請求
-- 寄送含驗證連結的重設密碼郵件
-- 驗證重置請求與使用者權限
-- 設定並更新新密碼
+MemberAuthService::verifyToken() 方法作為樣板，定義了所有 Token 驗證都必須遵循的固定流程。而這個流程中需要變動的每個步驟，則委託給不同的策略類別來完成。
 
-模組設計強調安全驗證與流程完整性，確保使用者身份與密碼重置的安全性。
+- ### TokenStrategyInterface：定義驗證合約
 
----
+    這是整個驗證流程的核心合約。它定義了所有 Token 策略都必須具備的公開方法，確保不論是何種 Token 類型，它們都能以統一的方式被處理。這個介面包含了：
 
-## 2. Controller 與 Service 職責對照
+    - `resolveModel()`： 根據 Token 字串查找對應的 Model。
+    - `isExpired()`： 檢查 Model 的 Token 是否過期。
+    - `handleExpired()`： 處理 Token 過期後的邏輯。
+    - `generateToken()`： 產生一個新的 Token 字串。
 
-| 元件                      | 主要角色與職責                             | 代表方法                             |
-|---------------------------|-----------------------------------------|-------------------------------------|
-| `ForgotPasswordController` | 處理載入重設密碼頁面、發起重置請求、驗證並設定新密碼 | `forgotPassword()`, `forgotPasswordRun()`, `resetPassword()`, `resetConfirm()` |
-| `ForgotPasswordService`    | 驗證帳號、建立重置請求、寄送郵件、驗證 Token、更新密碼 | `isRequestValid()`, `prepareVerification()`, `authorizeResetPasswordAccess()`, `validateResetRequest()`, `resetPassword()` |
+- ### AbstractTokenStrategy：共通的方法
 
----
+    為了避免重複程式碼，所以選擇建立了一個抽象策略類別 AbstractTokenStrategy。   
 
-## 3. 忘記密碼流程說明
+    它實作了 TokenStrategyInterface 中大部分合約方法。透過這個 Abstract Class，只需在具體的策略類別中，實作少數專屬的方法，例如指定對應的 Model 類別，就能輕鬆建立新的 Token 策略。
 
-### 3.1 發起重置請求
 
-使用者輸入 Email，呼叫 `forgotPasswordRun()`，系統驗證 Email 格式與會員身份，  
-通過後建立重置密碼請求紀錄並產生 Token，寄出包含驗證連結的重置郵件。
+- ### TokenStrategyRegistry：策略模式的中央管理員
+    TokenStrategyRegistry 是實現策略模式的關鍵元件。它扮演著中央管理員的角色，負責管理所有具體的策略類別。  
 
-### 3.2 載入重設密碼頁面
+    在設計中，TokenStrategyRegistry 採用建構子注入 (Constructor Injection) 的方式，將所有可用的策略實例化並儲存在內部。這樣當 MemberAuthService 需要處理特定 Token 時，它只需透過 get() 方法，就能輕鬆地取得對應的策略實例。
 
-使用者點擊郵件內連結，呼叫 `resetPassword()`，系統驗證 Email 與 Token 的有效性，  
-確認後顯示重設密碼頁面。
+    這種設計帶來了兩個主要優勢：  
 
-### 3.3 設定新密碼
+    **低耦合**： MemberAuthService 不需知道每一個具體策略的存在，它只依賴於 TokenStrategyRegistry 這個管理員。   
+    **高彈性**： 如果需要新增或修改 Token 策略，只需在 TokenStrategyRegistry 中進行調整，無需改其他的程式碼。
 
-使用者輸入新密碼與確認密碼，呼叫 `resetConfirm()`。  
-系統驗證 Token 與密碼格式一致性，通過後執行密碼更新流程，並自動登入（更新 Bearer Token）。
+<br/>
 
----
+### 具體策略類別
 
-## 4. 重要安全機制
+| 策略類別  | 對應 Model | 主要職責與特點 |
+| :---                             | :---                | :---                                            |
+| **`LoginTokenStrategy`**         | `User`              | 處理登入用的 Token，會返回專屬於登入的過期訊息。        |
+| **`PasswordTokenStrategy`**      | `PasswordUpdate`    | 處理忘記密碼流程的 Token，返回專屬於密碼重設的過期訊息。 |
+| **`RegisterTokenStrategy`**      | `Guest`             | 處理新用戶註冊驗證的 Token，返回專屬於註冊的過期訊息。   |
+| **`UpdateContactTokenStrategy`** | `UserContactUpdate` | 處理更新聯絡資訊的 Token，返回專屬於通訊變更的過期訊息。 |
 
-- Token 設計有過期時間，超時自動標記為過期，防止重複與惡意使用。
-- 變更請求透過資料庫交易（Transaction）確保資料一致性與安全。
-- 重設密碼前嚴格驗證 Email 與 Token 的匹配性。
-- 新密碼必須符合規格要求（如密碼長度與確認一致性）。
+<br/>
 
----
+### Token 類型與應用場景總覽
 
-## 5. 使用的資料表與模型
+| Token 類型 | 應用場景 | 處理流程 |
+| :---                       | :---       | :--- |
+| **`bearer_token`**         | 登入驗證    | 用於使用者登入後的身分驗證。每次成功的請求都會重新產生 Token，以維持登入狀態並確保安全性。 |
+| **`register_token`**       | 註冊驗證    | 用於新使用者註冊後的信箱驗證。一旦使用者透過 Token 完成驗證，該 Token 便會立即失效，防止被二次使用。 |
+| **`password_token`**       | 密碼重設    | 用於忘記密碼的重設流程。這個 Token 有效期較短，且在密碼重設成功後會立即失效。 |
+| **`update_contact_token`** | 聯絡資訊變更 | 用於變更使用者信箱或手機號碼等聯絡資訊。這個 Token 確保只有合法使用者能變更自己的重要資訊。 |
 
-| 模型             | 對應資料表                    | 功能說明               |
-|------------------|------------------------------|------------------------|
-| `User`           | `member_center_users`          | 正式會員資料           |
-| `PasswordUpdate` | `member_center_password_update` | 密碼重置請求紀錄       |
+<br/>
+<br/>
+<br/>
 
----
+# 第六章：會員註冊與驗證流程的實作
 
-## 6. 範例程式碼片段
+本章將透過一個完整的業務場景——會員註冊與驗證流程，來展示我們前幾章所設計的架構如何實際應用。這個流程將涵蓋從使用者提交註冊資訊，到後端處理、寄送驗證信，以及最終完成帳號驗證的整個過程。
 
-```php
-    // 執行忘記密碼流程，寄出重設密碼信
-    public function forgotPasswordRun(Request $request)
-    {
-        try {
-            ForgotPasswordService::isRequestValid($request->email);
-            ForgotPasswordService::prepareVerification($request->email);
-            return response()->json([
-                'code' => 200, 
-                'message' => '變更密碼信件已寄出，請前往信箱查收'
-            ]); 
-        } catch (Exception $e) {
-            return response()->json(['code' => 500, 'message' => $e->getMessage()]);
-        }
-    }
-```
-此章節完整呈現忘記密碼與重設密碼模組的功能架構與安全設計，利於未來維護與擴充。
+<br/>
 
----
+## 6 - 1 註冊流程的整體架構
+
+整個註冊流程被拆解為三個獨立但相互協作的階段，以確保程式碼職責單一，流程清晰易懂。
+
+- **啟動註冊流程**： 使用者在前端填寫信箱並提交，請求會送至 MemberRegisterController::registerRun。在這個階段，系統會啟動驗證流程，產生 register_token、暫存使用者資料，並寄送驗證信。
+
+- **授權設定密碼頁面**： 使用者收到驗證信後，點擊信中的連結。這個請求會送至 MemberRegisterController::setPassword，由後端驗證 Token 的有效性，如果通過，則載入設定密碼的頁面。
+
+- **完成註冊**： 使用者填寫完密碼並送出後，請求會送至 MemberRegisterController::completeRegistration。在這個階段，系統會進行最終的 Token 驗證與資料庫寫入，正式完成註冊並導向成功頁面。
+
+
+<br/>
+
+## 6 - 2 啟動註冊驗證流程： Orchestrator 與策略模式
+
+註冊流程的核心，是透過 VerificationEmailOrchestrator 和 RegisterVerificationStrategy 協同完成。  
+這種設計模式的應用，將流程控制與具體邏輯徹底分離。
+
+**VerificationEmailOrchestrator：流程的編排者**  
+- 這個類別扮演著編排者（Orchestrator）的角色，它定義了「寄送驗證信」的固定流程骨架   
+  例如：驗證請求 -> 建立紀錄 -> 寄送郵件
+- 透過 dispatchVerification() 方法，它會根據傳入的類型（例如 register），動態取得對應的策略物件，  
+  並執行固定的 verificationFlow()。這完美體現了樣板方法模式。
+
+<br/>
+
+**RegisterVerificationStrategy：註冊驗證策略的具體實作**
+- 此類別是策略模式的具體實作，它專注於「註冊」這個單一流程。它實作了 VerificationStrategyInterface 的方法，
+  並將具體的邏輯封裝在其中。
+- validateAndPrepareRequest()：驗證使用者輸入的信箱是否符合格式且尚未被註冊。
+- createAndUpdateRecord()：這個方法是流程的關鍵。它會： 
+    
+    - 將該信箱之前尚未完成的註冊紀錄標記為取消（cancelPending）
+    - 建立新的 Guest 紀錄並將狀態設為 pending
+    - 透過 MemberAuthService 產生一個唯一的 register_token
+    - 利用 EloquentGuestRepository 將 Token 儲存到 Guest 紀錄中
+- dispatchVerificationEmail()：將帶有驗證連結的郵件寄送給使用者
+
+<br/>
+
+這段流程的程式碼展示了各個服務是如何協同工作的：MemberRegisterService 呼叫 Orchestrator，Orchestrator 呼叫 RegisterVerificationStrategy，而 Strategy 再回頭呼叫 MemberAuthService 和 EloquentGuestRepository 來完成具體操作。
+
+
+<br/>
+
+## 6 - 3 授權與完成註冊：Token 的最終驗證
+
+當使用者收到驗證信並點擊連結後，流程進入第二個階段，由 MemberRegisterController 負責處理。這個階段的程式碼展示了 MemberAuthService 如何被應用，以確保整個流程的安全性。
+
+### 載入設定密碼頁面 (setPassword)
+
+當使用者點擊驗證連結時，請求會導向 MemberRegisterController::setPassword 方法。此時，系統會執行以下驗證：
+
+- **Token 有效性驗證**： UnitRegisterService::verifyRegisterToken 方法會呼叫 MemberAuthService，使用 RegisterTokenStrategy 來驗證傳入的 token 是否有效且未過期。
+
+- **信箱匹配驗證**： 同時，系統也會比對 URL 中的信箱與 Token 查詢到的 Guest 紀錄信箱是否一致，以防止惡意連結。
+
+<br/>
+如果任何一項驗證失敗，使用者會被導向登入頁面並收到錯誤訊息。只有在驗證成功後，系統才會安全地渲染設定密碼的頁面。
+
+### 完成註冊與資料庫寫入 (completeRegistration)
+
+使用者在設定密碼頁面填寫完新密碼後，提交請求至 MemberRegisterController::completeRegistration。這是註冊流程的最後一個關鍵步驟，由 UnitRegisterService::createMember 方法處理：
+
+- **核心業務邏輯**： 這個方法的核心邏輯被封裝在一個`資料庫交易 (DB::transaction)` 中，確保資料庫操作不會變更到一半後失敗，只會全部完成或全部失敗。它會執行以下動作：  
+    
+    - 將原有的 Guest 紀錄狀態標記為 completed
+    - 在 User 資料表中建立一筆新的正式會員紀錄
+    - 為新會員產生一個登入用的 bearer_token，並儲存在 User 紀錄中
+
+<br/>
+
+這個步驟再次體現了你的 Token 生命週期管理。當註冊完成後，register_token 所對應的 Guest 紀錄狀態被標記為 completed，使得這個 Token 無法再次被使用。同時，系統為新會員產生一個全新的 bearer_token 用於登入，實現了不同 Token 的職責分離。
+
+<br/>
+<br/>
+<br/>
+
+# 第七章：總結
+
+透過本專案，我成功地將抽象的設計理念轉化為實際可運作的程式碼，有效地解決了傳統單體架構中常見的職責不清與維護困難等問題。這個專案的核心價值與能力展現在以下幾個方面：
+
+- **物件導向設計（OOP）的實踐**：  
+    我遵循了 SOLID 原則，特別是單一職責原則（SRP）和依賴反轉原則（DIP）。透過將業務邏輯、資料存取與驗證流程等職責分離，確保了每個類別都只專注於單一任務。同時，藉由介面（interface）和抽象類別（abstract class），實現了高層模組不依賴於低層模組的具體實作，而是依賴於抽象，使得架構更具彈性。
+
+- **設計模式的靈活應用**：
+    本專案採用策略模式（Strategy Pattern）與樣板方法模式（Template Method Pattern）的結合應用。MemberAuthService 作為樣板方法，定義了固定的驗證流程骨架；而不同的 TokenStrategy 類別則作為具體策略，封裝了各自的驗證邏輯。這種設計讓系統在維護與擴充時，只需專注於新增或修改單一策略，而無需動到核心流程。
+
+- **清晰的 Service-Repository 分層架構**：
+    我設計了一個嚴謹的分層架構，將業務邏輯（Service）、資料庫操作（Repository）和模型（Model）徹底分離。Service 層透過介面與 Repository 層互動，完全不必關心底層是用何種 ORM 或資料庫技術。這種解耦設計，極大地提升了專案的可測試性與可維護性。
+
+透過這個專案，我有幸能將對軟體設計模式和架構的理解付諸實踐，並從中學習如何將理論知識應用於解決實際業務問題。這套高度模組化且易於擴展的架構，為未來的功能開發與系統維護奠定了基礎。我期待能帶著這份經驗與對技術的熱情，持續精進，為團隊和專案貢獻自己的力量。

@@ -9,14 +9,20 @@ use Exception;
 
 class PollingStatusController extends Controller
 {
+    protected PollingStatusService $pollingStatusService;
+
+    public function __construct(PollingStatusService $pollingStatusService)
+    {
+        $this->pollingStatusService = $pollingStatusService;
+    }
+
     // 輪詢是否已變更聯絡方式
     public function checkContactUpdateStatus(Request $request)
     {
         try
         {
-            $data = PollingStatusService::isRequestValid($request);
-            [ 'is_updated' => $isUpdated, 'status' => $status]  = PollingStatusService::checkUpdateStatus($data);
-
+            $data = $this->pollingStatusService->isRequestValid($request);
+            [ 'is_updated' => $isUpdated, 'status' => $status] = $this->pollingStatusService->checkUpdateStatus($data);
 
             if ($isUpdated){
                 return response()->json(['code' => 200, 'message' => 'done', 'status'=> $status]);

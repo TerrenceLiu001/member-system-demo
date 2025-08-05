@@ -2,7 +2,7 @@
 
 namespace App\Services\Strategies\Tokens\Contracts;
 
-use App\Contracts\Model\Tokens\TokenCapableInterface;
+use App\Models\Base\BaseTokenModel;
 
 interface TokenStrategyInterface
 {
@@ -10,23 +10,23 @@ interface TokenStrategyInterface
      * 解析並返回與 Token 相關的模型
      * @param string $token
      * @param array  $scopes
-     * @return TokenCapableInterface|null
+     * @return BaseTokenModel|null
      */
-    public function resolveModel(string $token, array $scopes = []): ? TokenCapableInterface;
+    public function resolveModel(string $token, array $scopes = []): ? BaseTokenModel;
 
     /**
      * 檢查模型 Token 是否過期。
      * @param TokenCapableInterface $model
      * @return bool
      */
-    public function isExpired(TokenCapableInterface $model): bool;
+    public function isExpired(BaseTokenModel $model): bool;
 
     /**
      * 處理過期的 Token。
      * @param TokenCapableInterface $model
      * @return void
      */
-    public function handleExpired(TokenCapableInterface $model): void;
+    public function handleExpired(BaseTokenModel $model): void;
 
     /**
      * 返回 Token 過期時的錯誤訊息。

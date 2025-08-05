@@ -21,30 +21,38 @@ use Exception;
 class MemberAuthService
 {    
     
-    // 生成 Token 
-    public static function generateToken(string $methodName, ?int $length = 64): string
+    protected TokenStrategyRegistry $tokenStrategyRegistry;
+
+    public function __construct(TokenStrategyRegistry $tokenStrategyRegistry)
     {
-        $strategy = TokenStrategyRegistry::get($methodName);
+        $this->tokenStrategyRegistry = $tokenStrategyRegistry;
+    }
+
+    // 生成 Token 
+    public function generateToken(string $methodName, ?int $length = 64): string
+    {
+        $strategy = $this->tokenStrategyRegistry->get($methodName);
         return $strategy->generateToken($length); 
     }
 
     // 將「Bearer Token」 設置在「Cookie」中   
-    public static function setBearerTokenCookie(string $token, int $time): SymfonyCookie
+    public function setBearerTokenCookie(string $token, int $time): SymfonyCookie
     {
         return cookie('bearer_token', $token, $time);
     }
 
     // 清空 cookie 中的 Bearer Token
-    public static function forgetBearerToken(): SymfonyCookie
+    public function forgetBearerToken(): SymfonyCookie
     {
         return Cookie::forget('bearer_token');
     }
 
     // 驗證 Token 是否有效
-    public static function verifyToken(TokenCapableInterface|string $input, string $method, ?array $scopes = []): ?TokenCapableInterface 
+    public function verifyToken(TokenCapableInterface|string $input, string $method, ?array $scopes = []): ?TokenCapableInterface 
     {
+        
+        $strategy = $this->tokenStrategyRegistry->get($method);
 
-        $strategy = TokenStrategyRegistry::get($method);
         $model = is_string($input)? $strategy->resolveModel($input, $scopes): $input;
 
         if (!$model) throw new Exception($strategy->getInvalidMessage()); 

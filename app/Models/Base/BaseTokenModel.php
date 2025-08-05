@@ -10,8 +10,22 @@ use Illuminate\Support\Str;
 abstract class BaseTokenModel extends Model implements TokenCapableInterface
 {
 
-    abstract public function getTokenName(): string;
+    // ──────    實作 Interface 的方法        ──────
 
+    abstract public function getTokenName(): string;    
+
+
+    public function getTokenExpiresAt(): ?\DateTimeInterface
+    {
+        return $this->token_expires_at;
+    }
+
+    public function updateTokenAndExpiry(string $token, ?int $minutes = 10): static
+    {
+        $this->{$this->getTokenName()} = $token;
+        $this->token_expires_at = now()->addMinutes($minutes);
+        return $this;
+    }
 
     // ────── 查詢範圍 Eloquent Scope Methods ──────
 
@@ -39,23 +53,10 @@ abstract class BaseTokenModel extends Model implements TokenCapableInterface
 
     // ────── 操作與 token 欄位和效期有關的方法 ──────
 
-    public function getTokenExpiresAt(): ?\DateTimeInterface
-    {
-        return $this->token_expires_at;
-    }
-
-    public function updateTokenAndExpiry(string $token, ?int $minutes = 10): void
-    {
-        $this->{$this->getTokenName()} = $token;
-        $this->token_expires_at = now()->addMinutes($minutes);
-        $this->save();
-    }
-
-
-    public function proceedTo(string $status): bool
+    public function proceedTo(string $status): static
     {
         $this->clearTokenFields();
-        return $this->save();
+        return $this;
     }
 
     protected function clearTokenFields(): void

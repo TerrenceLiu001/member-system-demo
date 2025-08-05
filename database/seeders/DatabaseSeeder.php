@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             UsersContactUpdateTableSeeder::class,
             GuestsTableSeeder::class,
+            UsersTableSeeder::class,
         ]);
     }
 }

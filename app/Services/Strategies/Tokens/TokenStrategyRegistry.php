@@ -11,14 +11,26 @@ use Exception;
 
 class TokenStrategyRegistry
 {
-    public static function get(string $method): TokenStrategyInterface
+    
+    protected array $strategies = [];
+
+    public function __construct()
     {
-        return match ($method) {
+        $this->strategies = 
+        [
             'register'       => new RegisterTokenStrategy(),
             'login'          => new LoginTokenStrategy(),
             'update_contact' => new UpdateContactTokenStrategy(),
-            'password'       => new PasswordTokenStrategy(),
-            default          => throw new Exception("未定義的 token method: $method")
-        };
+            'password'       => new PasswordTokenStrategy(), 
+        ];
     }
+
+    public function get(string $method): TokenStrategyInterface
+    {
+        if (!isset($this->strategies[$method])){
+            throw new Exception("未定義的 Token Method: $method");
+        };
+        return $this->strategies[$method];
+    }
+
 }

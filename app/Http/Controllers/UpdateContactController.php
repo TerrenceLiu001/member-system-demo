@@ -3,26 +3,37 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\ContactUpdateService;
+use App\Services\UpdateContact\UpdateContactService;
 use Exception;
 
 class UpdateContactController extends Controller
 {
+
+    protected UpdateContactService $updateContactService;
+
+    public function __construct(UpdateContactService $updateContactService)
+    {
+        $this->updateContactService = $updateContactService;
+    }
+
     //  執行「變更」Email
     public function updateEmail(Request $request)
     {
         try
         {
-            $contactType = ContactUpdateService::isRequestValid($request);
-            ($contactType === 'email') ? ContactUpdateService::prepareUpdateForEmail($request)
-                                       : throw new Exception("功能尚未開通");
-            
-            return response()->json(['code' => 200, 'message' => 'success']);
+            $this->updateContactService->initiateUpdateContactProcess($request);          
+            return response()->json([
+                'code'    => 200, 
+                'message' => 'success'
+            ]);
 
         }
         catch (Exception $e)
         {
-            return response()->json(['code' => 400, 'message' => $e->getMessage()]);
+            return response()->json([
+                'code'    => 400, 
+                'message' => $e->getMessage()
+            ]);
         }
     }
 
@@ -34,18 +45,17 @@ class UpdateContactController extends Controller
             $email = $request->route('email');
             $token = $request->route('token');
 
-            $record = ContactUpdateService::authorizeUpdateContactAccess($email, $token);
-
-            return view('update_contact', [
-                'email'     => $email, 
-                'new_contact' => $record->new_contact,
-                'contact_type' => 'email',
-                'token'     => $token
-            ]);
+            $response = $this->updateContactService->authorizeUpdateContactPage(
+                $email, $token
+            );
+            
+            return view('update_contact', $response);
         }
         catch (Exception $e)
         {
-            return redirect()->route('login')->with('error', $e->getMessage());
+            return redirect()->route('login')->with(
+                'error', $e->getMessage()
+            );
         }
     }
 
@@ -54,27 +64,28 @@ class UpdateContactController extends Controller
     {
         try
         {
-            $result = ContactUpdateService::handdleConfirmation($request->only([
+            $requestData = $request->only([
                 'email', 'token', 'contact_type', 'action'
-            ]));
+            ]);
 
-            return match ($result)
-            {
-                'completed' => redirect()->route('complete_confirm'),
-                'cancel'    => redirect()->route('login')->with('success', '已成功取消變更，請再次登入'),
-                default     => redirect()->route('login')->with('error', '未知錯誤'),
-            };
+            $response = $this->updateContactService->handleConfirmation($requestData);
+            return redirect()->route($response['route'])->with(...($response['session']));
         }
         catch (Exception $e)
         {
-            return redirect()->route('login')->with('error', $e->getMessage());
+            return redirect()->route('login')->with(
+                'error', $e->getMessage()
+            );
         };
     }
 
     //  載入「完成變更」頁面
     public function completeConfirm(Request $request)
     {
-        session()->flash('success', '已成功變更，請重新登入');
+        session()->flash(
+            'success', '已成功變更，請重新登入'
+        );
+
         return view('complete_confirm');
     }
 }

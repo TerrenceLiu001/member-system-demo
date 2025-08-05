@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\MemberCenterController;
+use App\Http\Controllers\MemberLoginController;
 use App\Http\Controllers\MemberRegisterController;
 use App\Http\Controllers\UpdateContactController;
 use App\Http\Controllers\ForgotPasswordController;
@@ -13,7 +14,7 @@ Route::controller(MemberRegisterController::class)->group(function()
 {
     Route::post('/register_run','registerRun')->name('register_run');  // 處理「註冊」流程
     Route::get('/set_password/{email}/{token}', 'setPassword')->name('set_password');  // 載入「密碼設定」頁面
-    Route::post('/create_member','createMember')->name('create_member');  // 加入會員                                      
+    Route::post('/complete_registration','completeRegistration')->name('complete_registration');  // 完成註冊                                      
 });
 
 // 處理「密碼」功能
@@ -29,11 +30,16 @@ Route::controller(ForgotPasswordController::class)->group(function()
 // 處理「登入」、「帳號設定」
 Route::middleware(['member_center_path'])->controller(MemberCenterController::class)->group(function() 
 {
-    Route::get('/login','login')->name('login');  // 載入「登入註冊」頁面
-    Route::post('/login_run','loginRun')->name('login_run');  // 處理「登入」流程  
     Route::get('/member_home','memberHome')->name('member_home');  // 載入「首頁」
     Route::get('/set_account','setAccount')->name('set_account');  // 載入「帳號設定」頁面
     Route::post('/edit_member_data','editMemberData')->name('edit_member_data'); // 編輯「會員資料」
+});
+
+// 處理「登入」功能
+Route::middleware(['member_center_path'])->controller(MemberLoginController::class)->group(function() 
+{
+    Route::get('/login','login')->name('login');  // 載入「登入註冊」頁面
+    Route::post('/login_run','loginRun')->name('login_run');  // 處理「登入」流程  
     Route::get('/logout','logout')->name('logout');  // 「登出」
 });
 

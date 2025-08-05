@@ -1,10 +1,10 @@
 <?php
 namespace App\Services;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\UserContactUpdate;  
 use App\Models\User;
+use App\Models\UserContactUpdate;  
+use App\Repositories\Tokens\Implementations\EloquentUserRepository;
 use Exception;
 
 /**
@@ -16,16 +16,19 @@ use Exception;
  * 
  * 
  * MemberCenterController::editMemberData
- * ├─ isRequestValid()
- * └─ updateMemberData()
+ * └─ handleEdit()
+ *    ├─ ensureValid()              ← private
+ *    │  └─ isMobileRegistered()    ← private
+ *    ├─ formatMobile()             ← private
+ *    └─ updateUserProfile()        ← private
  * 
- * ContactUpdateService::finishConfirm
+ * UpdateContactService::finishConfirm
  * └─ updateContact()
  *    └─ editEmail() ← private
  * 
  * 
  * @used-by \App\Http\Controllers\MemberCenterController
- * @used-by \App\Services\ContactUpdateService
+ * @used-by \App\Services\UpdateContactService
  * 
  * 使用模型與對應資料表：
  * - User              → member_center_users           （正式會員資料表）
@@ -35,67 +38,109 @@ use Exception;
 
 class MemberEditService
 {
+    protected ValidationService $validationService;
+    protected EloquentUserRepository $userRepository;
 
-    // 檢查「編輯請求」是否有效
-    public static function isRequestValid(User $user, Request $request): void
+    public function __construct(
+        ValidationService $validationService,
+        EloquentUserRepository $userRepository
+    )
     {
-        ValidationService::validateEmail($request->email);
-        if ($request->mobile !== null) ValidationService::validateMobile($request->country, $request->mobile);
-        if ($request->address !== null) ValidationService::validateAddress($request->address);
-
-        if ($request->username === null) throw new Exception("請輸入暱稱");
-        if (!ValidationService::isMatched($user->email, $request->email)) throw new Exception("請先驗證電子郵件");
-        self::isMobileRegistered($request->mobile, $user);
-
+        $this->validationService = $validationService;
+        $this->userRepository    = $userRepository;
     }
 
-    // 更新 User 的資料
-    public static function updateMemberData(User $user, Request $request): ?DB
+    // 執行「編輯」流程
+    public function handleEdit(User $user, array $data): void
     {
-        $mobile = $request->mobile;
-        if ($mobile && substr($mobile,0,1) !== '0') $mobile = '0'.$mobile;
 
-        return DB::transaction(function () use ($user, $request, $mobile) 
-        {
-            $user->update([
-                'username'  => $request->username,
-                'gender'    => $request->gender,
-                'age_group' => $request->age_group,
-                'address'   => $request->address,
-                'country'   => $request->country,
-                'mobile'    => $mobile,
-            ]);
-        });
-    }
+        $this->ensureValid($user, $data);
+
+        $data['mobile'] = $this->formatMobile($data['mobile']);
+
+        $this->updateUserProfile($user, $data);
+        
+    } 
 
     // 更新 Contact 資訊
-    public static function updateContact(UserContactUpdate $model): void
+    public function updateContact(UserContactUpdate $model): void
     {
-        if ($model->isRequestDone()) throw new Exception( "請勿重複操作，變更流程已經結束" );
-        
         $type = $model->contact_type;
         match ($type) 
         {
-            'email'  => self::editEmail($model),
+            'email'  => $this->editEmail($model),
             default  => throw new Exception( "不支援此類型的聯絡方式: {$type}"),
         };
     }
 
-    // 編輯 Email 欄位
-    private static function editEmail(UserContactUpdate $model): void
-    {
-        $user = User::isRegistered($model->email);
-        if (!$user) throw new Exception(" 查詢不到會員資料，請重新登入");
+    /** ----- 以下為私有方法 ----- */
 
-        $user->update(['email' => $model->new_contact]);
+
+
+    // 檢查「資料格式」是否正確
+    private function ensureValid(User $user, array $data): void
+    {
+        $this->validationService->validateEmail($data['email']);
+
+        if ($data['username'] === null){
+            throw new Exception("請輸入暱稱");
+        }
+        if (!$this->validationService->isMatched($user->email, $data['email'])){
+            throw new Exception("請先驗證電子郵件");
+        }
+        if ($data['mobile'] !== null){
+            $this->validationService->validateMobile($data['country'], $data['mobile']);
+        } 
+        if ($data['address'] !== null){
+            $this->validationService->validateAddress($data['address']);
+        } 
+        $this->isMobileRegistered($data['mobile'], $user);
+    }
+
+    // 轉換手機格式 (補 0)
+    private function formatMobile(?string $mobile): ?string
+    {
+        if (!$mobile) return null;
+        return $mobile[0] === '0' ? $mobile : '0' . $mobile;
+    }
+
+    // 更新 User 的資料
+    private function updateUserProfile(User $user, array $data): void
+    {
+        DB::transaction(function () use ($user, $data) 
+        {
+            $this->userRepository->update($user, $data);
+        });
     }
 
     // 檢查 Mobile 是否被註冊過
-    private static function isMobileRegistered(?string $mobile, User $user): void
+    private function isMobileRegistered(?string $mobile, User $user): void
     {
         if (!$mobile) return;
-        if ($user->mobile && ValidationService::isMatched($mobile, $user->mobile)) return;
-        if (User::isRegistered($mobile, 'mobile')) throw new Exception("此手機號碼已經加入會員");
+
+        if ($user->mobile && $this->validationService->isMatched(
+            $mobile, $user->mobile
+        )) return;
+
+        if ($this->userRepository->findAccount($mobile, 'mobile')){
+            throw new Exception("此手機號碼已經加入會員");
+        }
     }
+
+    // 編輯 Email 欄位
+    private function editEmail(UserContactUpdate $model): void
+    {
+        $user = $this->userRepository->findAccount($model->email);
+
+        if (!$user){
+            throw new Exception("查無會員資料，請重新登入");
+        }
+        $data = [
+            'email' => $model->new_contact
+        ];
+
+        $this->userRepository->update($user, $data);
+    }
+
 
 }

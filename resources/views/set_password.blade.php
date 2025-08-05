@@ -33,7 +33,7 @@
             </div>
             <div class="form_field">
                 <div class="header_section"><p>設定密碼</p></div>
-                <form action="{{ route('create_member') }}" method="POST">
+                <form action="{{ route('complete_registration') }}" method="POST">
                     @csrf
                     <div class="data_group">
                         <div class="label_part"><p>電子郵件</p></div>

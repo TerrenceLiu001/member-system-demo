@@ -1,54 +1,54 @@
+# Member System Demo：基於 Laravel 的模組化會員系統
+
 ## 目錄
 
+- [專案核心亮點](#專案核心亮點)
 - [功能總覽](#功能總覽)
 - [技術使用](#技術使用)
-- [系統流程概覽](#系統流程概覽)
 - [技能對應與實務經驗](#技能對應與實務經驗)
+- [專案架構圖](#專案架構圖)
+- [功能模組](#功能模組)
 - [資料表設計](#資料表設計)
-- [Controller 設計](#controller-設計)
-- [Service Layer](#service-layer)
 - [開發與執行教學 / 架構說明](#開發與執行教學--架構說明)
 
 
-# Member System Demo
 
-這是一個以 Laravel 12 開發的完整會員系統範例，包含註冊、登入、Email 驗證、資料編輯、忘記密碼等實用功能，  
-並實作 AJAX 輪詢機制提升用戶體驗。  
 
-專案採用清晰的 Service Layer 架構，符合實務開發需求，作為個人作品展示。
+這是一個以 Laravel 12 開發的完整會員系統範例，旨在展示如何運用分層架構（Service Layer）與設計模式，解決實務中複雜的業務流程與驗證邏輯。本專案以高內聚、低耦合的設計原則，實現了可擴展且易於維護的程式碼。
+
+核心功能涵蓋：註冊、登入、Email 驗證、忘記密碼與資料編輯等，並採用自訂 Token 驗證機制與 AJAX 輪詢，提供穩定與流暢的使用者體驗。
 
 ---
 
+## 專案核心亮點
+
+- **分層架構設計**   
+  採用清晰的 Service-Repository 分層架構，將業務邏輯與資料庫操作徹底分離。Controller 僅負責處理請求與調用服務，大幅提升程式碼的可讀性、可維護性與可測試性。  
+
+- **靈活的 Token 驗證機制**  
+  實作一套基於 Strategy Pattern 的 Token 驗證機制，將不同類型的 Token（如註冊、登入、密碼重設）處理邏輯封裝在各自的策略中。這種設計讓驗證流程高度模組化，易於擴充新功能。  
+
+- **Orchestrator 與策略模式**  
+  將「發送驗證信」等共通流程抽象為 VerificationEmailOrchestrator，並結合不同的策略（Strategy）來實作具體邏輯。這完美體現了樣板方法模式與策略模式的結合應用，有效減少重複程式碼並提升系統彈性。  
+
+
 ## 功能總覽
 
-- 會員註冊（含 Email 驗證）
-- 登入 / 登出
-- 忘記密碼流程
+- 會員註冊：包含 Email 驗證與密碼設定流程。
+- 登入 / 登出：透過自訂的 Bearer Token 進行身分驗證
+- 忘記密碼：安全的密碼重設流程。
 - 個人資料設定（暱稱、性別、年齡層）
-- Email 變更驗證流程
-- 驗證信輪詢機制（AJAX + polling）
+- Email 變更驗證：透過 Email 驗證確認變更，並搭配 AJAX 輪詢提供即時狀態更新。
 
 ---
 
 ## 技術使用
 
-- **後端框架**：Laravel 12（MVC 架構）
-- **前端模板**：Blade + jQuery（含 AJAX 操作）
-- **資料庫**：MySQL（使用 migration、seed）
+- **後端框架**：Laravel 12（PHP）
+- **前端模板**：Blade 模板引擎, jQuery (AJAX), HTML/CSS
+- **資料庫**：MySQL 8.0+
 - **部署環境**：MAMP / macOS
 - **版本控制**：Git
-
----
-
-## 系統流程概覽
-
-本系統為「會員中心」，提供兩條主要操作流程：
-
-1. **註冊流程**  
-   `訪客點選註冊 → 發送驗證信 → 設定密碼 → 設定會員資料 → 首頁 → 登出`
-
-2. **登入流程**  
-   `登入 → 首頁 → 編輯會員資料（含變更 Email）→ 首頁 → 登出`
 
 ---
 
@@ -57,37 +57,78 @@
 以下為我在本專案中展現的技術能力
 
 
-| 技能項目                     | 實作經驗與說明 |
-|-----------------------------|--------------------|
-| PHP / Laravel / MVC 架構     | 熟悉 Laravel ，專案以 MVC 架構撰寫，並清楚分離 Controller 與 Service。 |
-| MySQL 資料庫設計              | 使用 migration 建立多張資料表，並利用 Seeder 匯入測試資料（Seeder 功能基礎實作中）。 |
-| Eloquent ORM                | 熟悉條件查詢、關聯操作與 Model 驗證邏輯，於專案中廣泛使用。 |
-| RESTful API 與 JSON 資料處理 | 實作 Email 驗證狀態查詢 API，採用 RESTful 設計與 JSON 格式回應。 |
-| Git 版本控制                 | 使用 Git 管理專案版本，具備良好 commit 習慣，理解多人協作流程。 |
-| jQuery 與 AJAX 操作          | 透過 jQuery 操作 DOM 並發送非同步請求，實作註冊、驗證信輪詢等功能。 |
-| HTML / CSS / Blade 模板     | 使用 Blade 撰寫頁面結構，結合 CSS 呈現表單與版面，自主切版。 |
-| 技術文件撰寫能力              | 本專案附有 README、安裝教學、流程與架構說明，文檔完整易讀。 |
+| 技能項目 | 實作經驗與說明 |
+| :--- | :--- |
+| **PHP / Laravel 框架** | 專案基於 **Laravel 12** 框架，透過 **Service Layer** 實現業務邏輯與控制器職責分離，確保程式碼可讀性與可維護性。 |
+| **軟體架構與設計模式**   | 運用 **Orchestrator** 結合 **策略模式（Strategy Pattern）**，將重複流程抽象化。在資料層則採用 **Repository Pattern**，實現業務邏輯與資料持久化解耦。 |
+| **物件導向設計 (OOP)** | 專案中應用了 **SOLID 原則**，透過介面與抽象類別來實踐依賴反轉，使架構更具彈性與擴充性。 |
+| **MySQL 資料庫**      | 具備 **Migration** 經驗，能進行資料庫結構的版本控制，並使用 **Seeder** 建立測試資料，簡化了環境建置流程。 |
+| **Eloquent ORM**     | 在專案中，我透過 **Repository Pattern** 封裝了 Eloquent 的資料存取細節，將複雜的查詢邏輯與業務流程分離。 |
+| **API 設計**          | 實作 Email 驗證狀態查詢 API，遵循 **RESTful** 設計原則，並以 **JSON** 格式回應，便於前端與後端協作。 |
+| **非同步處理**         | 運用 **jQuery** 與 **AJAX** 技術，實作無頁面刷新的輪詢機制，提升使用者體驗。 |
+| **版本控制**           | 熟悉以**功能分支**為主的開發流程，能將個人開發的程式碼提交至 `dev` 分支，並通過合併請求（Merge Request）的方式更新至 `main` 分支。|
+| **技術文件撰寫**       | 本專案文件包含架構設計、程式碼說明與安裝教學，能清晰闡述設計理念，有助於他人理解與維護。 |
 
 
 ---
 
-## 系統畫面預覽
+## 專案架構圖
 
+```
+                          +-----------+
+                          |  Request  |
+                          +-----------+
+                                |
+                                ▼
+                        +----------------+
+                        |   Middleware   |
+                        +----------------+
+                                |
+                                ▼
+                        +----------------+
+                        |   Controller   |
+                        +----------------+
+                                |
+                                ▼
+      +------------------------------------------------------+ 
+      |  +------------+        Service Layer                 |
+      |  |   Service  |                                      |
+      |  +------------+    +--------------+    +----------+  | 
+      |        ├─────────> | Orchestrator | ─> | Stratgey |  |  
+      |        |           +--------------+    +----------+  | 
+      |        |                                             | 
+      |        |           +--------------+                  | 
+      |        └─────────> | Unit Service |                  |
+      |                    +--------------+                  |
+      +------------------------------------------------------+
 
-<p align="left">
-  <img src="docs/images/register.png" height="400" width="300">
-  <img src="docs/images/set_password.png" height="400" width="300">
+                                |
+                                ▼
+                        +----------------+
+                        |   Repository   |
+                        +----------------+
+                                |
+                                ▼
+                        +----------------+
+                        |    Database    |
+                        +----------------+
 
-<p align="left">
-  <img src="docs/images/set_account.png" height="400" width="300">
-  <img src="docs/images/home_page.png" height="400" width="300">
-</p>
-
-
+``` 
 
 
 ---
 
+## 功能模組
+
+| 功能模組      | Controller                   | 說明  |
+|------------ |------------------------------|----------------------------------------------------|
+|  會員登入    | `MemberLoginController`      | 提供登入、登出功能
+|  會員註冊    | `MemberRegisterController`   | 處理訪客註冊流程，包含電子郵件驗證與密碼設定 |
+|  忘記密碼    | `ForgotPasswordController`   | 發送驗證信並重設密碼  |
+|  聯絡資訊更新 | `UpdateContactController` + `PollingStatusController` | 使用者更新電子郵件，並透過輪詢機制即時驗證狀態  |
+|  會員中心    | `MemberCenterController`    | 登入後的首頁與個人資料編輯功能  |
+
+---
 
 ## 資料表設計
 
@@ -97,36 +138,6 @@
 | member_center_users              | 正式會員資料（含登入用 bearer token）                     |
 | member_center_user_contact_update| Email/手機變更請求資料，追蹤變更狀態與驗證信（目前實作 Email）|
 | member_center_password_update    | 忘記密碼的驗證 token 與狀態紀錄                           |
-
-
----
-
-## Controller 設計
-
-| Controller 名稱            | 負責功能說明                     |
-|---------------------------|--------------------------------|
-| MemberRegisterController  | 處理註冊流程與訪客記錄             |
-| MemberCenterController    | 會員首頁與個人資料編輯             |
-| UpdateContactController   | 處理 Email 更新流程              |
-| ForgotPasswordController  | 忘記密碼流程（產生與驗證 token）    |
-| PollingStatusController   | 提供前端輪詢 Email 驗證狀態的 API  |
-
-
----
-
-### Service Layer
-
-| Service 名稱                 | 職責簡介                                     |
-|-----------------------------|---------------------------------------------|
-| `MemberRegisterService`     | 處理註冊流程與訪客建立邏輯                       |
-| `MemberLoginService`        | 登入驗證與登入 token 管理                      |
-| `MemberAuthService`         | 驗證各類型 token：註冊、登入、Email 變更、密碼重設 |
-| `ContactUpdateService`      | Email 變更申請流程與狀態控制                    |
-| `MemberEmailService`        | 發送各種 Email（註冊、驗證、密碼重設）           |
-| `ValidationService`         | 驗證 Email、手機等格式正確性                    |
-| `MemberEditService`         | 編輯會員個人資料（暱稱、性別、年齡層）            |
-| `ForgotPasswordService`     | 忘記密碼流程（產生/驗證 token、更新密碼）        |
-| `PollingStatusService`      | 處理 Email 驗證輪詢狀態查詢                    |
 
 ---
 
@@ -138,3 +149,9 @@
 ---
 
 
+## 聯絡方式
+
+若您對此專案或我的履歷有興趣，歡迎聯絡我：
+
+- Email：dreaninvain@gmail.com
+- GitHup: [@https://github.com/TerrenceLiu001]

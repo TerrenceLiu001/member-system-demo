@@ -2,7 +2,6 @@
 
 namespace App\Services\Strategies\Tokens\Implementations;
 
-
 use App\Models\PasswordUpdate;
 use App\Services\Strategies\Tokens\AbstractTokenStrategy;
 

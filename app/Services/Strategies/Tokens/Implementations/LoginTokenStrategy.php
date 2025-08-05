@@ -2,13 +2,11 @@
 
 namespace App\Services\Strategies\Tokens\Implementations;
 
-
 use App\Models\User;
 use App\Services\Strategies\Tokens\AbstractTokenStrategy;
 
 class LoginTokenStrategy extends AbstractTokenStrategy 
 {
-
     protected function getModelClass(): string
     {
         return User::class;

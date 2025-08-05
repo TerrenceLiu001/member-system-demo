@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\Base\AbstractTokenModel;
-use Illuminate\Contracts\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Builder;
 
 class UserContactUpdate extends AbstractTokenModel
 {
@@ -40,15 +40,19 @@ class UserContactUpdate extends AbstractTokenModel
 
     // ────── 查詢範圍 Scope Methods ──────
 
-    public function scopeUserId($query, $id): Builder
+    public function scopeUserId(Builder $query, int $id): Builder
     {
         return $query->where('user_id', $id);
     }
-
     
-    public function scopeType($query, $type): Builder
+    public function scopeType(Builder $query, string $type): Builder
     {        
         return $query->where('contact_type', $type);
+    }
+
+    public function scopeNewContact(Builder $query, string $newContact): Builder
+    {
+        return  $query->where('new_contact', $newContact);
     }
 
 }

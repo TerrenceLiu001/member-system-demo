@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Base\BaseTokenModel;
+use Illuminate\Database\Eloquent\Builder; 
 
 class User extends BaseTokenModel 
 {
@@ -39,11 +40,9 @@ class User extends BaseTokenModel
     {
         return 'bearer_token'; 
     }
-
-
-    public static function isRegistered(string $contact, string $type = 'email'): ?User
-    {
-        return ($type === 'email')?  static::where('email', $contact)->first() : static::where('mobile', $contact)->first();          
-    }
     
+    public function scopeMobile(Builder $query, $mobile): Builder
+    {
+        return $query->where('mobile', $mobile);
+    }
 }
