@@ -591,7 +591,7 @@ UnitRegisterService 專注於處理主 Service 委派過來的單一、原子性
 
 ## 3 - 4 核心服務元件：ServiceRegistry 與 MemberAuthService
 
-在本專案的服務層中，ServiceRegistry 與 MemberAuthService 扮演著至關重要的角色，前者是整個服務層的樞紐，後者則是所有會員身分驗證的核心。這兩個元件的設計體現了依賴反轉原則（Dependency Inversion Principle），確保了服務層的彈性與可擴展性。
+在本專案的服務層中，ServiceRegistry 與 MemberAuthService 扮演著至關重要的角色，前者是整個服務層的樞紐，後者則是所有會員身分驗證的核心。這兩個元件的設計是為了確保了服務層的彈性與可擴展性。
 
 <br/>
 
@@ -682,7 +682,7 @@ MemberAuthService 是專門處理所有與會員身分驗證相關業務的核�
     }
     ```
 
-- **解耦與可擴展性** ：此設計使得 MemberAuthService 不關心 Token 具體是如何生成的，也不關心 Token 模型的細節。可以輕鬆地新增或修改 Token 策略，而無需變動 MemberAuthService 的程式碼，完全符合依賴反轉原則。
+- **解耦與可擴展性** ：此設計使得 MemberAuthService 不關心 Token 具體是如何生成的，也不關心 Token 模型的細節。可以輕鬆地新增或修改 Token 策略，而無需變動 MemberAuthService 的程式碼，盡量符合依賴反轉原則。
 
 - **獨立的 Cookie 處理** ：`setBearerTokenCookie()` 和 `forgetBearerToken()` 方法將 Cookie 的處理邏輯封裝起來，讓其他服務在調用時無需關心底層的 Cookie 函式，這也是單一職責原則的良好實踐。
 
@@ -700,7 +700,7 @@ MemberAuthService 是專門處理所有與會員身分驗證相關業務的核�
 
 ## 4 - 1 核心模式：調控器（Orchestrator）與策略（Strategy）
 
-在前面章節有提到，為了抽象化共通的業務流程並提高靈活性，採用了 Orchestrator 結合 Strategy 的設計模式。本章將探討這個核心模式的實作細節，揭示如何將抽象理念轉化為可維護、可擴展的實際程式碼。
+在前面章節有提到，為了抽象化共通的業務流程並提高靈活性，採用了 Orchestrator 結合 Strategy 的設計模式。本章將探討這個核心模式的實作細節，揭示如何將抽象理念轉化為可以維護、能夠擴展的程式碼。
 
 <br/>
 
@@ -708,22 +708,26 @@ MemberAuthService 是專門處理所有與會員身分驗證相關業務的核�
 
 VerificationEmailOrchestrator 這個模組扮演著「流程調度者」的角色，定義了「發送驗證信」這個流程的固定步驟。  
 
-其中以 dispatchVerification() 作為此模組的公開介面，運用了類似工廠模式 (Factory Pattern)的概念，會依據傳入參數（方法名稱），選擇對應的 Strategy，並執行 verificationFlow()。
+其中以 dispatchVerification() 作為此模組的公開介面，運接收外部傳入的流程類型，會根據類型從內部策略表中選擇對應的策略，並交給 verificationFlow() 進行統一的流程處理。
 
 ```php
     public function dispatchVerification(string $type, Request $request): void
     {
-        $strategy = match ($type) {
-            'register' => $this->registerStrategy,
-            'forgot_password' => $this->passwordStrategy,
-            'update_contact' => $this->contactStrategy,
-        };
-
+        $strategy = $this->strategies[$type];
         $this->verificationFlow($strategy, $request);
     }
 ```
 
-而 verificationFlow() 就是這個流程的樣板。它內部定義了固定的呼叫順序：
+Orchestrator 在建構時，會透過 Laravel Container 自動注入所有實作了 VerificationStrategyInterface 的策略，並依據每個策略的 getType() 回傳值，建立策略映射表：
+```php
+    foreach ($strategies as $strategy) {
+        $this->strategies[$strategy->getType()] = $strategy;
+    }
+```
+
+此設計不再依賴特定策略類別，讓 Orchestrator 對擴展開放、對修改封閉，符合依賴反轉原則（DIP）與開放封閉原則（OCP）。  
+
+接著回到 verificationFlow() ，這個方法就是「寄送信件」的流程樣板。它內部定義了固定的呼叫順序：
 
 * #### 驗證並準備請求 (validateAndPrepareRequest)
 * #### 更新並創建紀錄 (createAndUpdateRecord)
@@ -748,8 +752,8 @@ VerificationEmailOrchestrator 這個模組扮演著「流程調度者」的角�
     }
 ```
 
-Orchestrator 的核心在於它只定義流程的骨架，不實作任何步驟的具體細節。所有變動的邏輯都透過依賴注入的方式，  
-委派給遵循 VerificationStrategyInterface 介面的策略物件來完成。
+Orchestrator 的核心在於它只定義流程的骨架，不實作任何步驟的具體細節。所有變動的邏輯都透過注入的策略來完成，  
+委派給遵循 VerificationStrategyInterface 介面的策略物件。
 
 <br/>
 
@@ -893,7 +897,7 @@ Repository 層作為 Service 層與 Model 層之間的唯一橋樑，其核心�
 
 <br/>
 
-透過此設計，Service 層完全不必關心底層是用何種 ORM 進行資料存取。如果未來要更換資料庫技術，只需修改 Repository 內部的實作，而無需變動任何一個 Service 內的業務邏輯。這種解耦設計呈現依賴反轉原則（Dependency Inversion Principle）的精神，提高了專案的擴充彈性並讓後續的維護的更加便利。
+透過此設計，Service 層完全不必關心底層是用何種 ORM 進行資料存取。如果未來要更換資料庫技術，只需修改 Repository 內部的實作，而無需變動任何一個 Service 內的業務邏輯。
 
 <br/>
 

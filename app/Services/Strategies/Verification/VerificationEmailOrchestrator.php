@@ -3,9 +3,6 @@
 namespace App\Services\Strategies\Verification;
 
 use App\Services\Strategies\Verification\Contracts\VerificationStrategyInterface;
-use App\Services\Strategies\Verification\Implementations\RegisterVerificationStrategy;
-use App\Services\Strategies\Verification\Implementations\ForgotPasswordVerificationStrategy;
-use App\Services\Strategies\Verification\Implementations\UpdateContactVerificationStrategy;
 use App\Services\MemberEmailService;
 use Illuminate\Http\Request;
 
@@ -13,32 +10,21 @@ use Illuminate\Http\Request;
 class VerificationEmailOrchestrator
 {
     protected MemberEmailService $memberEmailService;
-    protected RegisterVerificationStrategy $registerStrategy;
-    protected ForgotPasswordVerificationStrategy $passwordStrategy;
-    protected UpdateContactVerificationStrategy $contactStrategy;
-
+    protected array $strategies = [];
 
     public function __construct(
         MemberEmailService $memberEmailService,
-        RegisterVerificationStrategy $registerStrategy,
-        ForgotPasswordVerificationStrategy $passwordStrategy,
-        UpdateContactVerificationStrategy $contactStrategy
-    )
-    {
+        iterable $strategies  
+    ) {
         $this->memberEmailService = $memberEmailService;
-        $this->registerStrategy   = $registerStrategy;
-        $this->passwordStrategy   = $passwordStrategy;
-        $this->contactStrategy    = $contactStrategy;
+        foreach ($strategies as $strategy) {
+            $this->strategies[$strategy->getType()] = $strategy;
+        }
     }
 
     public function dispatchVerification(string $type, Request $request): void
     {
-        $strategy = match ($type) {
-            'register' => $this->registerStrategy,
-            'forgot_password' => $this->passwordStrategy,
-            'update_contact' => $this->contactStrategy,
-        };
-
+        $strategy = $this->strategies[$type];
         $this->verificationFlow($strategy, $request);
     }
 
@@ -56,5 +42,4 @@ class VerificationEmailOrchestrator
 
         $strategy->dispatchVerificationEmail($record, $verificationLink);
     }
-
 }

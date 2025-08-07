@@ -10,8 +10,7 @@ use App\Services\Strategies\Tokens\Implementations\PasswordTokenStrategy;
 use Exception;
 
 class TokenStrategyRegistry
-{
-    
+{    
     protected array $strategies = [];
 
     public function __construct()
@@ -32,5 +31,4 @@ class TokenStrategyRegistry
         };
         return $this->strategies[$method];
     }
-
 }

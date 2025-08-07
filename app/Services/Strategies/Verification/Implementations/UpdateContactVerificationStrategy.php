@@ -50,6 +50,10 @@ class UpdateContactVerificationStrategy extends AbstractVerificationStrategy
         $this->contactRepository = $contactRepository;
     }
 
+    public function getType(): string 
+    {
+        return 'update_contact';
+    }
 
     // 驗證 Request 是否有效，並返回資料
     public function validateAndPrepareRequest(Request $request): mixed

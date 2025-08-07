@@ -30,7 +30,6 @@ interface TokenCapableInterface
      *
      * @param string $token 新的 Token 。
      * @param int|null $minutes Token 的有效期限，單位為分鐘。
-     * 
      * @return static 回傳自身實例，便於鏈式操作
      */
     public function updateTokenAndExpiry(string $token, ?int $minutes = 10): static;

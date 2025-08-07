@@ -20,7 +20,6 @@ use Exception;
 
 class MemberAuthService
 {    
-    
     protected TokenStrategyRegistry $tokenStrategyRegistry;
 
     public function __construct(TokenStrategyRegistry $tokenStrategyRegistry)

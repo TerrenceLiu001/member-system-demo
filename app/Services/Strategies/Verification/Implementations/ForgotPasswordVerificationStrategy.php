@@ -50,7 +50,11 @@ class ForgotPasswordVerificationStrategy extends AbstractVerificationStrategy
         parent::__construct($services);
         $this->passwordRepository = $passwordRepository;
     }
-
+    
+    public function getType(): string 
+    {
+        return 'forgot_password';
+    }
 
     // 驗證 Request 是否有效，並返回資料
     public function validateAndPrepareRequest(Request $request): mixed
@@ -125,4 +129,3 @@ class ForgotPasswordVerificationStrategy extends AbstractVerificationStrategy
     }
 
 }
-

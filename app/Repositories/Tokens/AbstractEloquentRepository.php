@@ -23,6 +23,6 @@ abstract class AbstractEloquentRepository extends BaseEloquentRepository impleme
 
     public function cancelPending(array $conditions): void
     {
-        $this->findPendingRecord($conditions)?->proceedTo('cancel');
+        $this->findPendingRecord($conditions)?->proceedTo('cancel')->save();
     }
 }

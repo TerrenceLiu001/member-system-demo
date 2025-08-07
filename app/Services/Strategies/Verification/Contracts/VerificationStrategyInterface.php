@@ -8,6 +8,14 @@ use Exception;
 
 interface VerificationStrategyInterface
 {
+
+    /**
+     * 取得此驗證策略的唯一類型識別字串。
+     *
+     * @return string 策略的唯一類型字串
+     */
+    public function getType(): string;
+
     /**
      * 驗證 Request 是否有效，並返回資料
      * 
@@ -44,6 +52,4 @@ interface VerificationStrategyInterface
      * @return array 例如: ['routeName' => 'route_name', 'params' => ['email' => '...', 'token' => '...']]
      */
     public function getLinkInfo(TokenStatusInterface $record): array;
-
-
 }

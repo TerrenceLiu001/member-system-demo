@@ -50,6 +50,10 @@ class RegisterVerificationStrategy extends AbstractVerificationStrategy
         $this->guestRepository = $guestRepository;
     }
 
+    public function getType(): string 
+    {
+        return 'register';
+    }
 
     // 驗證 Request 是否有效，並返回資料
     public function validateAndPrepareRequest(Request $request): mixed
@@ -98,7 +102,6 @@ class RegisterVerificationStrategy extends AbstractVerificationStrategy
             $verificationLink
         );
     }
-
 
     // 準備「連結」參數
     public function getLinkInfo(TokenStatusInterface $record): array
