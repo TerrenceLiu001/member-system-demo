@@ -18,6 +18,16 @@
 
 ---
 
+### 線上體驗
+
+[點此體驗](https://laravel-member-system.infinityfreeapp.com/login)
+
+測試帳號/密碼 (每日會初始化，可放心編輯) - 
+  - test834@test.com / Test0000  
+  - test258@test.com / Test0000
+
+---
+
 ## 專案核心亮點
 
 - **分層架構設計**   
