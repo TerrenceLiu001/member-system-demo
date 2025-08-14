@@ -5,26 +5,18 @@
 - [專案核心亮點](#專案核心亮點)
 - [功能總覽](#功能總覽)
 - [技術使用](#技術使用)
+- [環境建置](#環境建置)
+- [雲端部署](#雲端部署)
 - [技能對應與實務經驗](#技能對應與實務經驗)
 - [專案架構圖](#專案架構圖)
 - [功能模組](#功能模組)
 - [資料表設計](#資料表設計)
-- [開發與執行教學 / 架構說明](#開發與執行教學--架構說明)
+- [架構說明](#架構說明)
 - [聯絡方式](#聯絡方式)
 
 這是一個以 Laravel 12 開發的完整會員系統範例，旨在展示如何運用分層架構與多種設計模式，解決實務中複雜的業務流程與驗證邏輯。本專案遵循 SOLID 原則 與 高內聚、低耦合 的設計理念，實現了可擴展且易於維護的程式碼。
 
 核心功能涵蓋：會員註冊、登入、Email 驗證、忘記密碼與資料編輯等，並採用自訂 Token 驗證機制，提供安全與流暢的使用者體驗。
-
----
-
-### 線上體驗
-
-[點此體驗](https://laravel-member-system.infinityfreeapp.com/login)
-
-測試帳號/密碼 (每日會初始化，可放心編輯) - 
-  - test834@test.com / Test0000  
-  - test258@test.com / Test0000
 
 ---
 
@@ -58,9 +50,102 @@
 - **後端框架**：Laravel 12（PHP）
 - **前端模板**：Blade 模板引擎, jQuery (AJAX), HTML/CSS
 - **資料庫**：MySQL 8.0+
-- **部署環境**：MAMP / macOS
+- **容器化**：Docker / Docker Compose
+- **部署環境**：GCP Cloud Run
 - **版本控制**：Git
 
+---
+
+## 環境建置
+
+### 1. 環境要求
+
+- [Docker](https://www.docker.com/)
+- [Docker Compose](https://docs.docker.com/compose/)
+
+### 2. 複製專案與設定環境變數
+
+首先複製專案到本地機，並接著設定環境變數。
+
+```bash
+  # clone 專案
+  git clone https://github.com/TerrenceLiu001/member-system-demo.git
+
+  # 進入專案，並複製「環境檔」
+  cd member-system-demo
+  cp .env/example .env
+```
+  
+請編輯 `.env` 檔案，填入你的環境變數。
+
+### 3. 啟動容器
+
+在專案根目錄下，執行以下指令來建置並啟動所有服務。
+
+```bash
+  # 建立 images 和 container 並執行 
+  docker-compose up --build -d
+```
+
+### 4. 進入容器並設定專案
+
+進入 app 容器，執行專案所需的設定指令。
+
+```bash
+  docker exec -it app sh
+```
+
+進入容器後，請執行以下指令：
+
+```bash
+  # 產生 Laravel 應用程式金鑰
+  php artisan key:generate
+
+  # 執行資料庫遷移
+  php artisan migrate
+```
+
+### 5. 訪問應用程式
+
+現在，應用程式應該已經在運行中。可以在瀏覽器中訪問： [http://localhost:8081](http://localhost:8081)
+
+---
+
+## 雲端部署
+
+本專案已針對雲端部署進行容器化配置，以下為部署至 GCP 的流程：  
+
+### 1. 建置 images 並推送至 Artifact Registry
+
+將 APP 的程式碼與相關套件，打包成一個可部署的映像檔(images)，並推送到 GCP 的映像檔倉庫(Artifact Registry)。  
+Docker 相關檔案位於 `./docker/production/` 此生產環境中。
+
+```bash
+  # 在專案「根目錄」下建置 images 
+  docker build -t [地區]-docker.pkg.dev/[專案 ID]/[倉庫名稱]/[映像檔名稱]:[Tag] -f ./docker/production/Dockerfile .
+
+  # 請確保已透過 gcloud auth configure-docker 的指令完成驗證
+  docker push [地區]-docker.pkg.dev/[專案ID]/[倉庫名稱]/[映像檔名稱]:[Tag]
+```
+
+### 2. 配置 Cloud SQL 與連線設定
+
+在部署前，確保 Cloud Run 能夠安全、有效地連線到 Cloud SQL 資料庫。  
+
+- IAM 權限： 在 Cloud SQL 的「連線」設定中，確保你的 Cloud Run 服務帳戶擁有 Cloud SQL 客戶 (Cloud SQL Client) 的 IAM 角色，以允許連線。  
+
+- 連線名稱： Cloud SQL 實例的「連線名稱」(Connection name)，它將用於 Cloud Run 的設定。
+
+### 3. 部署至 Cloud Run
+
+在 Cloud Run 上啟動你的容器映像檔，並配置必要的環境變數與服務連線。
+
+### 4. 部署成果
+
+Member System Demo 的雲端部署 - [成果連結](https://member-center-app-54079994772.asia-east1.run.app/login)
+
+- 測試帳號 / 密碼 : test834@test.com / Test0000 
+- 測試帳號 / 密碼 : test258@test.com / Test0000 
 ---
 
 ## 技能對應與實務經驗
@@ -151,14 +236,10 @@
 | member_center_password_update    | 忘記密碼的驗證 token 與狀態紀錄                           |
 
 ---
+## 架構說明
 
-## 開發與執行教學 / 架構說明
-
-- 🛠 安裝流程請參考 👉 [`docs/setup.md`](docs/setup.md)  
 - 🧩 系統架構與模組設計 👉 [`docs/architecture.md`](docs/architecture.md)
-
 ---
-
 
 ## 聯絡方式
 

@@ -1,0 +1,35 @@
+server {
+    # Cloud Run 會注入環境變數 PORT
+    listen ${PORT};
+    server_name _;
+
+    root /var/www/html/public;
+    index index.php index.html;
+
+    charset utf-8;
+
+    # 主路由
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # PHP-FPM
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_index index.php;
+    }
+
+    # 隱藏隱藏檔案
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+
+    # favicon & robots.txt
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    # 自訂錯誤頁
+    error_page 404 /index.php;
+}

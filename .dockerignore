@@ -1,0 +1,35 @@
+# Git 版本控制目錄
+.git
+
+# Docker 忽略文件本身
+.dockerignore
+
+# macOS 系統檔案
+.DS_Store
+
+# IDE 設定檔（PhpStorm）
+.phpstorm.meta.php
+.idea
+
+# 環境變數檔案（敏感資料）
+.env
+.env.*
+
+# Composer 套件目錄（可用 Dockerfile 裡 composer install 重建）
+vendor
+
+# Node.js 套件目錄（如果有）
+node_modules
+
+# Laravel 加密金鑰（如果有）
+storage/*.key
+
+# 日誌檔案
+*.log
+
+# Docker Compose 配置檔（通常不需放進映像）
+docker-compose.yml
+docker-compose.override.yml
+
+# SQL 腳本檔案（資料庫初始化腳本）
+database.sql
