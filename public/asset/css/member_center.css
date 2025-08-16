@@ -202,7 +202,7 @@ form {
     background-color: #003E6A;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2); 
 
-    p {
+    & p {
         color: #ffffff;
         font-family: Noto Sans TC;
         font-weight: 700;
