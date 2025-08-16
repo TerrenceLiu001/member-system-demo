@@ -40,47 +40,51 @@
 }
 
 .btn_field {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  justify-content: flex-start; // 可改成 space-between 或 center
-  margin-top: 8px;
-
-  form {
-    display: flex !important;
-    flex-direction: row !important;
+    display: flex;
     gap: 16px;
-    flex: 1 0 0;
-    width: 100%;
+    align-items: center;
+    justify-content: flex-start; 
+    margin-top: 8px;
 
-    button {
-        flex: 1 1 0;
-        padding: 12px 24px;
-        border-radius: 12px;
-        font-family: Noto Sans TC;
-        font-weight: 600;
-        font-size: 18px;
-        line-height: 28px;
-    }
+    & form {
+        flex-direction: row !important;
+        width: 100%;
 
-    .media_btn {
-        border: 1px solid #005B9A;
-        color: #ffffff;
-    }
-
-    .cancel {
-        background-color: #ffffff;
-        border: 1px solid #999999;
-        color: #999999;
-
-        &:hover {
-            background-color: #ffffff;
+        & button {
+            flex: 1 1 0;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-family: Noto Sans TC;
+            font-weight: 600;
+            font-size: 18px;
+            line-height: 28px;
         }
 
-        &:active {
-            background-color: #fffff0;
+        .media_btn {
+            border: 1px solid #005B9A;
+            color: #ffffff;
+
+            &.cancel {
+                background-color: #ffffff;
+                border: 1px solid #999999;
+                color: #999999;
+
+                &:hover {
+                    background-color: #ffffff;
+                }
+
+                &:active {
+                    background-color: #fffff0;
+                }
+            }
         }
     }
-  }
+}
+
+@media (max-width: 767px){        
+    .btn_field form button {
+        padding: 8px 24px;
+        font-size: 14px;
+    }
 }
 

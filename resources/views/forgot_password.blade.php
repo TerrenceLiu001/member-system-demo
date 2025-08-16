@@ -33,7 +33,7 @@
             <div class="forget_field">
                 <div class="header_section">
                     <p>忘記密碼</p>
-                    <p class="description">系統將會寄送重置密碼頁面至您的電子信箱</p>
+                    <div class="description">系統將會寄送重置密碼頁面至您的電子信箱</div>
                 </div>
                 <div class="data_group">
                     <div class="label_part">

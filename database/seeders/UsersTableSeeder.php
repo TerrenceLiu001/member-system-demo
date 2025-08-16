@@ -17,36 +17,51 @@ class UsersTableSeeder extends Seeder
      */
     public function run(): void
     {
-        $faker = Faker::create('zh_TW');  
 
-        $gender = ['male', 'female', 'unknown'];
-        $age_group = ['under_20', 'between_21_30', 'between_31_40', 'between_41_50', 'between_51_60', 'below_61'];
+        $emailId = [
 
-        // foreach (range(1, 1) as $index) {
-        //     DB::table('member_center_users')->insert([
-        //         'guest_id' => $index,
-        //         'username' => 'TestAccount',
-        //         'email' => $faker->unique()->safeEmail,
-        //         'mobile' => '0900123456',
-        //         'country' => 'TWN', 
-        //         'gender' => $faker->randomElement($gender),
-        //         'age_group' => $faker->randomElement($age_group),
-        //         'address' => $faker->address,
-        //         'password' => Hash::make('Test0000'),
-        //         'created_at' => now(),
-        //         'updated_at' => now(),
-        //     ]);
-        // }
+        ];
+        
+        $gender = [
+            'male', 
+            'female', 
+            'unknown'
+        ];
+
+
+        $age_group = [
+            'under_20', 
+            'between_21_30', 
+            'between_31_40', 
+            'between_41_50', 
+            'between_51_60', 
+            'below_61'
+        ];
 
         DB::table('member_center_users')->insert([
             'guest_id' => 100,
             'username' => 'TestAccount',
-            'email' => 'test@gmail.com',
-            'mobile' => '0900123456',
+            'email' => 'test01@test.com',
             'country' => 'TWN', 
             'password' => Hash::make('Test0000'),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        for ($i = 1; $i <= 50; $i++){
+
+            $guest_id = 100 + $i;
+            $email = 'test' . str_pad($emailId[$i-1], 3, '0', STR_PAD_LEFT) . '@test.com';
+            
+            DB::table('member_center_users')->insert([
+                'guest_id' => $guest_id,
+                'username' => 'TestAccount',
+                'email' => $email,
+                'country' => 'TWN', 
+                'password' => Hash::make('Test0000'),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 }
