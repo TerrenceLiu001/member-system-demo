@@ -23,13 +23,13 @@
 ## 專案核心亮點
 
 - **分層架構設計**   
-  採用 Service-Repository 的分層架構，將業務邏輯與資料庫操作徹底分離。Controller 專注於處理請求與調用服務，讓程式碼清楚易讀、容易維護與並能夠進行測試。Service 層進一步細分為主 Service、UnitService、Orchestrator 與 Strategy 等角色，以實現職責分明與邏輯協同。 
+  採用 Service-Repository 的分層架構，將業務邏輯與資料庫操作徹底分離。Controller 專注於處理請求與調用服務，將業務邏輯獨立到 Service Layer 中，讓程式碼清楚易讀、容易維護，並極大化單元測試的可能性。Service 層進一步細分為主 Service、UnitService、Orchestrator 與 Strategy 等角色，以實現職責分明與邏輯協同。 
 
 - **抽象流程與設計模式**   
-  將「寄送驗證信」等共通流程獨立出來，由 Orchestrator 負責統籌，再搭配策略模式（Strategy Pattern），針對註冊、忘記密碼、Email 變更等不同情境實作對應策略。這樣的設計巧妙結合樣板方法模式與策略模式，不僅減少重複程式碼，也提升系統的彈性與擴充能力。
+  將「寄送驗證信」等共通流程獨立出來，由 Orchestrator 負責統籌，再搭配策略模式（Strategy Pattern），針對註冊、忘記密碼、Email 變更等不同情境實作對應策略。這樣的設計結合樣板方法模式與策略模式，不僅減少重複程式碼，也提升系統的彈性與擴充能力。
 
 - **物件導向設計（OOP）與 SOLID 原則**  
-  專案應用了 SOLID 原則，透過 Interface 與 Abstract Class 來實踐依賴反轉原則（Dependency Inversion Principle, DIP），確保高層模組不依賴低層模組的具體實作，使得整體架構方便日後擴展與維護。每個模組也遵循單一職責原則（Single Responsibility Principle, SRP），以維持良好的模組邊界。 
+  本專案努力遵循物件導向設計原則，特別是單一職責原則（Single Responsibility Principle, SRP），以維持各模組的清晰職責與良好邊界。此外，透過介面（Interface）與抽象類別（Abstract Class）的應用，也使整體架構更具彈性與擴充性。
 
 - **彈性 Token 驗證機制**  
   實作一套基於策略模式的 Token 驗證機制，將不同類型的 Token（如註冊、登入、密碼重設）處理流程封裝在各自的 Strategy 中。這種設計讓驗證流程彼此獨立、職責單一，便於擴充與維護，並確保系統的安全性與無狀態（Stateless）特性。 
@@ -162,8 +162,11 @@ Member System Demo 的雲端部署 - [成果連結](https://member-center-app-54
 | **Eloquent ORM**     | 在專案中，我透過 **Repository Pattern** 封裝了 Eloquent 的資料存取細節，將複雜的查詢邏輯與業務流程分離。 |
 | **API 設計**          | 實作 Email 驗證狀態查詢 API，遵循 **RESTful** 設計原則，並以 **JSON** 格式回應，便於前端與後端協作。 |
 | **非同步處理**         | 運用 **jQuery** 與 **AJAX** 技術，實作無頁面刷新的輪詢機制，提升使用者體驗。 |
-| **版本控制**           | 熟悉以**功能分支**為主的開發流程，能將個人開發的程式碼提交至 `dev` 分支，並通過合併請求（Merge Request）的方式更新至 `main` 分支。|
-| **技術文件撰寫**       | 本專案文件包含架構設計、程式碼說明與安裝教學，能清晰闡述設計理念，有助於他人理解與維護。 |
+| **版本控制**           | 了解以**功能分支**為主的開發流程，能將個人開發的程式碼提交至 `dev` 分支，並通過合併請求（Merge Request）的方式更新至 `main` 分支。|
+| **單元測試**           | 使用 PHPUnit 與 Mockery 進行單元測試，為 MemberRegisterService 與 UnitRegisterService 撰寫測試案例，學習程式碼的邊界條件與潛在問題。|
+| **容器化**            | 使用 Docker 和 Docker Compose 建置開發環境。透過 docker-compose.yml 實現多容器應用（Nginx、PHP-FPM、MySQL）的協同運作，並利用 Dockerfile 確保環境一致性。|
+| **雲端部署**          | 具備使用 GCP Cloud Run 進行無伺服器部署的經驗。將 Docker Image 推送到 Artifact Registry，並配置 Cloud SQL 連線，將專案發布至線上環境。|
+| **技術文件撰寫**       | 本專案文件包含架構設計、程式碼說明，能清晰闡述設計理念，有助於他人理解與維護。 |
 
 
 ---
@@ -247,3 +250,4 @@ Member System Demo 的雲端部署 - [成果連結](https://member-center-app-54
 
 - Email：dreaninvain@gmail.com
 - GitHub: [TerrenceLiu001](https://github.com/TerrenceLiu001)
+

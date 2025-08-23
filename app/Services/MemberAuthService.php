@@ -63,5 +63,4 @@ class MemberAuthService
 
         return $model; 
     }
-
 }

@@ -43,7 +43,7 @@ class UnitRegisterService extends AbstractUnitService
         $this->guestRepository = $guestRepository;
     }
 
- // 驗證並準備註冊頁面的資料
+    // 驗證並準備註冊頁面的資料
     public function ensureDataValid(?string $email, ?string $password, ?string $confirmed): array
     {
 
@@ -131,5 +131,4 @@ class UnitRegisterService extends AbstractUnitService
             2880
         );
     }
-
 }

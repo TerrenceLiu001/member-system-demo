@@ -79,7 +79,6 @@ class MemberRegisterService
     // 完成「註冊」
     public function completeRegistrationProcess(?string $email, ?string $password, ?string $confirmed): Cookie
     {
-
         $validatedData = $this->unitService->ensureDataValid(
             $email, $password, $confirmed
         );

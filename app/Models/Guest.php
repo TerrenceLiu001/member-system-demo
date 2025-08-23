@@ -21,17 +21,14 @@ class Guest extends AbstractTokenModel
         'register_token', 
     ];
 
-
     protected $casts = [
         'token_expires_at' => 'datetime',
         'created_at' => 'datetime', 
         'updated_at' => 'datetime', 
     ];
 
-
     public function getTokenName():string
     {
         return 'register_token';
     }
-
 }
